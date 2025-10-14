@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "372063209583",
+    "firebase_url": "https://prm392-fe-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "prm392-fe",
+    "storage_bucket": "prm392-fe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:372063209583:android:5fa99b4c79ec8ae94ea59a",
+        "android_client_info": {
+          "package_name": "com.example.ecommerceapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHwBLUzhwCp18wU2L9HK3BFI0DSEN6aLU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:372063209583:android:fba73c7218c1a4094ea59a",
+        "android_client_info": {
+          "package_name": "com.example.newEcom"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHwBLUzhwCp18wU2L9HK3BFI0DSEN6aLU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
