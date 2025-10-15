@@ -8,6 +8,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -45,8 +48,16 @@ public class ProductAdapter extends FirestoreRecyclerAdapter<ProductModel, Produ
     public void onBindViewHolder(@NonNull ProductViewHolder holder, int position, @NonNull ProductModel product) {
         // --- price / labels ---
         holder.productLabel.setText(product.getName());
-        holder.productPrice.setText("Rs. " + product.getPrice());
-        holder.originalPrice.setText("Rs. " + product.getOriginalPrice());
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.getDefault());
+        symbols.setGroupingSeparator('.'); // Dùng dấu chấm thay cho dấu phẩy
+
+        DecimalFormat formatter = new DecimalFormat("#,###", symbols);
+
+        String priceFormatted = formatter.format(product.getPrice());
+        String origFormatted  = formatter.format(product.getOriginalPrice());
+
+        holder.productPrice.setText(priceFormatted + "₫");
+        holder.originalPrice.setText(origFormatted + "₫");
         holder.originalPrice.setPaintFlags(holder.originalPrice.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
 
         int op = Math.max(product.getOriginalPrice(), 1); // tránh chia 0

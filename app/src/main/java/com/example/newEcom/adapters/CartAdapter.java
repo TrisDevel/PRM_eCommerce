@@ -54,9 +54,9 @@ public class CartAdapter extends FirestoreRecyclerAdapter<CartItemModel, CartAda
     protected void onBindViewHolder(@NonNull CartViewHolder holder, int position, @NonNull CartItemModel model) {
         // Hiển thị dữ liệu text
         holder.productName.setText(model.getName());
-        holder.singleProductPrice.setText("₹ " + model.getPrice());
-        holder.productPrice.setText("₹ " + (model.getPrice() * model.getQuantity()));
-        holder.originalPrice.setText("₹ " + model.getOriginalPrice());
+        holder.singleProductPrice.setText("VND " + model.getPrice());
+        holder.productPrice.setText("VND " + (model.getPrice() * model.getQuantity()));
+        holder.originalPrice.setText("VND " + model.getOriginalPrice());
         holder.originalPrice.setPaintFlags(holder.originalPrice.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
         holder.productQuantity.setText(String.valueOf(model.getQuantity()));
 

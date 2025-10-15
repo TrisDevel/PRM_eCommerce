@@ -1,14 +1,14 @@
 package com.example.newEcom.activities;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -22,9 +22,6 @@ import android.widget.Toast;
 import com.example.newEcom.R;
 import com.example.newEcom.model.CategoryModel;
 import com.example.newEcom.utils.FirebaseUtil;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -45,14 +42,15 @@ public class ModifyCategoryActivity extends AppCompatActivity {
 
     AutoCompleteTextView idDropDown;
     ArrayAdapter<String> idAdapter;
-    CategoryModel currCategory;
-    String docId, categoryImage;
-    Uri imageUri;
-    int categoryId;
-    Context context = this;
-    boolean imageUploaded = true;
 
-    SweetAlertDialog dialog;
+    CategoryModel currCategory;
+    String docId;
+    String categoryImage; // URL ảnh đang dùng/được chọn
+    int categoryId;
+
+    Context context = this;
+
+    SweetAlertDialog dialog; // progress nhỏ để load/preview ảnh
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,45 +69,31 @@ public class ModifyCategoryActivity extends AppCompatActivity {
         backBtn = findViewById(R.id.backBtn);
         removeImageBtn = findViewById(R.id.removeImageBtn);
 
-        imageBtn.setOnClickListener(v -> {
-            Intent intent = new Intent();
-            intent.setAction(Intent.ACTION_GET_CONTENT);
-            intent.setType("image/*");
-            startActivityForResult(intent, 101);
-        });
+        // Nút chọn ảnh: mở dialog dán URL thay vì ACTION_GET_CONTENT
+        imageBtn.setOnClickListener(v -> showImageUrlDialog());
 
-        modifyCategoryBtn.setOnClickListener(v -> {
-            updateToFirebase();
-        });
-
-        backBtn.setOnClickListener(v -> {
-            onBackPressed();
-        });
-
-        removeImageBtn.setOnClickListener(v -> {
-            removeImage();
-        });
+        modifyCategoryBtn.setOnClickListener(v -> updateToFirebase());
+        backBtn.setOnClickListener(v -> onBackPressed());
+        removeImageBtn.setOnClickListener(v -> removeImage());
 
         dialog = new SweetAlertDialog(this, SweetAlertDialog.PROGRESS_TYPE);
         dialog.getProgressHelper().setBarColor(Color.parseColor("#A5DC86"));
-        dialog.setTitleText("Uploading image...");
+        dialog.setTitleText("Loading...");
         dialog.setCancelable(false);
 
         initDropDown(new MyCallback() {
             @Override
             public void onCallback(List<CategoryModel> categoriesList, List<String> docIdList) {
                 String[] ids = new String[categoriesList.size()];
-                for (int i=0; i<categoriesList.size(); i++)
+                for (int i = 0; i < categoriesList.size(); i++) {
                     ids[i] = Integer.toString(categoriesList.get(i).getCategoryId());
+                }
 
                 idAdapter = new ArrayAdapter<>(context, R.layout.dropdown_item, ids);
                 idDropDown.setAdapter(idAdapter);
-                idDropDown.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                        docId = docIdList.get(i);
-                        initCategory(categoriesList.get(i));
-                    }
+                idDropDown.setOnItemClickListener((AdapterView<?> adapterView, View view, int i, long l) -> {
+                    docId = docIdList.get(i);
+                    initCategory(categoriesList.get(i));
                 });
             }
         });
@@ -117,20 +101,15 @@ public class ModifyCategoryActivity extends AppCompatActivity {
 
     private void initDropDown(MyCallback myCallback) {
         FirebaseUtil.getCategories().orderBy("categoryId")
-                .get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (task.isSuccessful()) {
-                            int i = 0;
-                            List<CategoryModel> categories = new ArrayList<>();
-                            List<String> docIds = new ArrayList<>();
-                            for (QueryDocumentSnapshot document : task.getResult()) {
-                                categories.add(document.toObject(CategoryModel.class));
-                                docIds.add(document.getId());
-                                i++;
-                            }
-                            myCallback.onCallback(categories, docIds);
+                .get().addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        List<CategoryModel> categories = new ArrayList<>();
+                        List<String> docIds = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            categories.add(document.toObject(CategoryModel.class));
+                            docIds.add(document.getId());
                         }
+                        myCallback.onCallback(categories, docIds);
                     }
                 });
     }
@@ -139,149 +118,159 @@ public class ModifyCategoryActivity extends AppCompatActivity {
         currCategory = model;
         categoryId = currCategory.getCategoryId();
 
-        SweetAlertDialog dialog = new SweetAlertDialog(this, SweetAlertDialog.PROGRESS_TYPE);
-        dialog.getProgressHelper().setBarColor(Color.parseColor("#A5DC86"));
-        dialog.setTitleText("Modifying...");
-        dialog.setCancelable(false);
-//        dialog.show();
+        // Hiện progress chỉ khi cần, ở đây load ảnh nhanh -> không show cũng được
+        // dialog.show();
 
-        Picasso.get().load(currCategory.getIcon()).into(categoryImageView, new Callback() {
-            @Override
-            public void onSuccess() {
-                dialog.dismiss();
-            }
-            @Override
-            public void onError(Exception e) {
-            }
-        });
+        // Lưu URL hiện tại vào biến để nếu không đổi thì không update icon
+        categoryImage = currCategory.getIcon();
 
-        detailsLinearLayout.setVisibility(View.VISIBLE);
+        // Preview ảnh hiện tại (có placeholder)
         categoryImageView.setVisibility(View.VISIBLE);
         removeImageBtn.setVisibility(View.VISIBLE);
+        Picasso.get()
+                .load(categoryImage)
+                .placeholder(R.drawable.ic_image_placeholder)
+                .error(R.drawable.ic_image_placeholder)
+                .into(categoryImageView, new Callback() {
+                    @Override public void onSuccess() { /* dialog.dismiss(); */ }
+                    @Override public void onError(Exception e) { /* dialog.dismiss(); */ }
+                });
+
+        detailsLinearLayout.setVisibility(View.VISIBLE);
 
         nameEditText.setText(currCategory.getName());
         descEditText.setText(currCategory.getBrief());
         colorEditText.setText(currCategory.getColor());
     }
 
-    private void updateToFirebase(){
-        if (!validate())
-            return;
+    /** Mở hộp thoại để dán URL ảnh; preview ngay nếu hợp lệ */
+    private void showImageUrlDialog() {
+        final TextInputEditText input = new TextInputEditText(this);
+        input.setHint("https://example.com/image.jpg");
+        input.setInputType(InputType.TYPE_TEXT_VARIATION_URI);
 
-        SweetAlertDialog dialog = new SweetAlertDialog(this, SweetAlertDialog.PROGRESS_TYPE);
-        dialog.getProgressHelper().setBarColor(Color.parseColor("#A5DC86"));
-        dialog.setTitleText("Loading...");
-        dialog.setCancelable(false);
-        dialog.show();
-        if (imageUri != null ) {
-            FirebaseUtil.getCategoryImageReference(categoryId + "").putFile(imageUri)
-                    .addOnCompleteListener(t -> {
-                        FirebaseUtil.getCategoryImageReference(categoryId + "").getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                            @Override
-                            public void onSuccess(Uri uri) {
-                                categoryImage = uri.toString();
-                                FirebaseUtil.getCategories().document(docId).update("icon", categoryImage);
-                                updateDataToFirebase();
-                                dialog.dismiss();
-                                Toast.makeText(context, "Category has been modified successfully!", Toast.LENGTH_SHORT).show();
-                                finish();
-                            }
-                        });
-                    });
+        new AlertDialog.Builder(this)
+                .setTitle("Paste Image URL")
+                .setView(input)
+                .setPositiveButton("Set", (d, w) -> {
+                    String url = (input.getText() == null) ? "" : input.getText().toString().trim();
+                    if (url.isEmpty()) {
+                        Toast.makeText(this, "URL is empty", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    categoryImage = url;
+
+                    // Preview ảnh mới
+                    // dialog.show(); // thường không cần
+                    categoryImageView.setVisibility(View.VISIBLE);
+                    removeImageBtn.setVisibility(View.VISIBLE);
+                    Picasso.get()
+                            .load(categoryImage)
+                            .placeholder(R.drawable.ic_image_placeholder)
+                            .error(R.drawable.ic_image_placeholder)
+                            .into(categoryImageView, new Callback() {
+                                @Override public void onSuccess() { /* dialog.dismiss(); */ }
+                                @Override public void onError(Exception e) {
+                                    Toast.makeText(ModifyCategoryActivity.this, "Cannot load image from URL", Toast.LENGTH_SHORT).show();
+                                    /* dialog.dismiss(); */
+                                }
+                            });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void updateToFirebase() {
+        if (!validate()) return;
+
+        SweetAlertDialog progress = new SweetAlertDialog(this, SweetAlertDialog.PROGRESS_TYPE);
+        progress.getProgressHelper().setBarColor(Color.parseColor("#A5DC86"));
+        progress.setTitleText("Saving...");
+        progress.setCancelable(false);
+        progress.show();
+
+        // Cập nhật icon nếu khác URL cũ
+        if (categoryImage != null && !categoryImage.equals(currCategory.getIcon())) {
+            FirebaseUtil.getCategories().document(docId).update("icon", categoryImage);
         }
-        else {
-            updateDataToFirebase();
-            dialog.dismiss();
-            Toast.makeText(context, "Category has been modified successfully!", Toast.LENGTH_SHORT).show();
-            finish();
-        }
+        // Cập nhật các field text
+        updateDataToFirebase();
+
+        progress.dismissWithAnimation();
+        Toast.makeText(context, "Category has been modified successfully!", Toast.LENGTH_SHORT).show();
+        finish();
     }
 
     void updateDataToFirebase() {
-        if (!nameEditText.getText().toString().equals(currCategory.getName()))
-            FirebaseUtil.getCategories().document(docId).update("name", nameEditText.getText().toString());
-        if (!descEditText.getText().toString().equals(currCategory.getBrief()))
-            FirebaseUtil.getCategories().document(docId).update("brief", descEditText.getText().toString());
-        if (!colorEditText.getText().toString().equals(currCategory.getColor()))
-            FirebaseUtil.getCategories().document(docId).update("color", colorEditText.getText().toString());
+        String newName  = safeText(nameEditText);
+        String newBrief = safeText(descEditText);
+        String newColor = normalizeHex(safeText(colorEditText)); // chuẩn hóa # nếu thiếu
+
+        if (!newName.equals(currCategory.getName()))
+            FirebaseUtil.getCategories().document(docId).update("name", newName);
+
+        if (!newBrief.equals(currCategory.getBrief()))
+            FirebaseUtil.getCategories().document(docId).update("brief", newBrief);
+
+        if (!newColor.equals(currCategory.getColor()))
+            FirebaseUtil.getCategories().document(docId).update("color", newColor);
     }
 
     private void removeImage() {
-        SweetAlertDialog alertDialog = new SweetAlertDialog(this, SweetAlertDialog.WARNING_TYPE);
-        alertDialog
-                .setTitleText("Are you sure?")
-                .setContentText("Do you want to remove this image?")
-                .setConfirmText("Yes")
-                .setCancelText("No")
-                .setConfirmClickListener(new SweetAlertDialog.OnSweetClickListener() {
-                    @Override
-                    public void onClick(SweetAlertDialog sweetAlertDialog) {
-                        imageUploaded = false;
-                        categoryImageView.setImageDrawable(null);
-                        categoryImageView.setVisibility(View.GONE);
-                        removeImageBtn.setVisibility(View.GONE);
-                        alertDialog.cancel();
-                    }
-                }).show();
+        // Chỉ xóa ảnh trên UI và bỏ URL (không dính Storage)
+        categoryImage = null;
+        categoryImageView.setImageDrawable(null);
+        categoryImageView.setVisibility(View.GONE);
+        removeImageBtn.setVisibility(View.GONE);
     }
 
     boolean validate() {
         boolean isValid = true;
-        if (nameEditText.getText().toString().trim().length() == 0) {
+
+        if (safeText(nameEditText).isEmpty()) {
             nameEditText.setError("Name is required");
             isValid = false;
         }
-        if (descEditText.getText().toString().trim().length() == 0) {
+        if (safeText(descEditText).isEmpty()) {
             descEditText.setError("Description is required");
             isValid = false;
         }
-        if (colorEditText.getText().toString().trim().length() == 0) {
+
+        String color = safeText(colorEditText);
+        if (color.isEmpty()) {
             colorEditText.setError("Color is required");
             isValid = false;
-        }
-        if (colorEditText.getText().toString().charAt(0) != '#') {
-            colorEditText.setError("Color should be HEX value");
-            isValid = false;
+        } else {
+            // cho phép thiếu '#'
+            String hex = normalizeHex(color);
+            try {
+                Color.parseColor(hex);
+            } catch (Exception e) {
+                colorEditText.setError("Color should be HEX value");
+                isValid = false;
+            }
         }
 
-        if (!imageUploaded) {
-            Toast.makeText(context, "Image is not selected", Toast.LENGTH_SHORT).show();
-            isValid = false;
-        }
+        // KHÔNG bắt buộc đổi ảnh khi sửa (có thể để nguyên icon cũ)
+        // Nếu bạn muốn bắt buộc có ảnh (cũ hoặc mới), bật check sau:
+        // if (categoryImage == null || categoryImage.trim().isEmpty()) { ... }
+
         return isValid;
     }
 
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+    private String safeText(TextInputEditText et) {
+        return et.getText() == null ? "" : et.getText().toString().trim();
+    }
 
-        if (requestCode == 101) {
-            if (data != null && data.getData() != null) {
-                imageUri = data.getData();
-                imageUploaded = true;
-                dialog.show();
-
-                Picasso.get().load(imageUri).into(categoryImageView, new Callback() {
-                    @Override
-                    public void onSuccess() {
-                        dialog.dismiss();
-                    }
-                    @Override
-                    public void onError(Exception e) {
-                    }
-                });
-                categoryImageView.setVisibility(View.VISIBLE);
-                removeImageBtn.setVisibility(View.VISIBLE);
-            }
-        }
+    private String normalizeHex(String value) {
+        if (value == null) return "#FF9800";
+        String v = value.trim();
+        if (v.isEmpty()) return "#FF9800";
+        if (!v.startsWith("#")) v = "#" + v;
+        return v;
     }
 
     public interface MyCallback {
         void onCallback(List<CategoryModel> categories, List<String> docIds);
     }
-
-//    @Override
-//    public void onBackPressed() {
-//        super.onBackPressed();
-//        FirebaseUtil.getCategoryImageReference(categoryId + "").delete();
-//    }
 }

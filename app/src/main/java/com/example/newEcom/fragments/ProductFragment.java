@@ -28,6 +28,9 @@ import android.widget.LinearLayout;
 import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 import com.airbnb.lottie.LottieAnimationView;
 import com.example.newEcom.R;
@@ -176,8 +179,16 @@ public class ProductFragment extends Fragment {
         Picasso.get().load(currentProduct.getImage()).into(productImage);
         productName.setText(currentProduct.getName());
         int discountPerc = (currentProduct.getDiscount() * 100) / currentProduct.getOriginalPrice();
-        productPrice.setText("₹ " + currentProduct.getPrice());
-        originalPrice.setText("₹ " + currentProduct.getOriginalPrice());
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.getDefault());
+        symbols.setGroupingSeparator('.'); // dùng dấu . thay vì ,
+
+        DecimalFormat formatter = new DecimalFormat("#,###", symbols);
+
+        String priceFormatted = formatter.format(currentProduct.getPrice());
+        String origFormatted  = formatter.format(currentProduct.getOriginalPrice());
+
+        productPrice.setText(priceFormatted + "₫");
+        originalPrice.setText(origFormatted + "₫");
         originalPrice.setPaintFlags(originalPrice.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
         discountPercentage.setText(discountPerc + "% OFF");
 

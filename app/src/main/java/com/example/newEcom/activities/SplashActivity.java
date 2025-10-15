@@ -37,7 +37,6 @@ public class SplashActivity extends AppCompatActivity {
             FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
             if (user == null) {
                 Log.wtf(TAG, "No current user -> LoginActivity");
-                toast("No user -> Login");
                 gotoAndClear(LoginActivity.class);
                 return;
             }
@@ -65,11 +64,9 @@ public class SplashActivity extends AppCompatActivity {
                 Class<?> dest;
                 if (ADMIN_EMAIL.equals(email)) {
                     Log.wtf(TAG, "Matched ADMIN -> AdminActivity");
-                    toast("ADMIN");
                     dest = AdminActivity.class;
                 } else {
                     Log.wtf(TAG, "Not admin -> MainActivity");
-                    toast("USER");
                     dest = MainActivity.class;
                 }
                 gotoAndClear(dest);

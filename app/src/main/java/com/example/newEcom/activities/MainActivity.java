@@ -184,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
-    private void handleDeepLink(){
+    private void handleDeepLink() {
         FirebaseDynamicLinks.getInstance().getDynamicLink(getIntent())
                 .addOnSuccessListener(new OnSuccessListener<PendingDynamicLinkData>() {
                     @Override
@@ -193,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
                         if (pendingDynamicLinkData != null)
                             deepLink = pendingDynamicLinkData.getLink();
 
-                        if (deepLink != null){
+                        if (deepLink != null) {
                             Log.i("DeepLink", deepLink.toString());
                             String productId = deepLink.getQueryParameter("product_id");
                             Fragment fragment = ProductFragment.newInstance(Integer.parseInt(productId));
@@ -207,8 +207,8 @@ public class MainActivity extends AppCompatActivity {
                         Log.i("Error123", e.toString());
                     }
                 });
-    }
 
+    }
 //    @Override
 //    protected void onStart() {
 //        super.onStart();
