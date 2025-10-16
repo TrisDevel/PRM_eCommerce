@@ -3,31 +3,24 @@ package com.example.newEcom.activities;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.app.AlertDialog;
-import android.app.ProgressDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.util.Patterns;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-//import com.developer.kalert.KAlertDialog;
 import com.example.newEcom.R;
-import com.example.newEcom.adapters.CartAdapter;
 import com.example.newEcom.model.OrderItemModel;
-import com.example.newEcom.model.ProductModel;
 import com.example.newEcom.utils.EmailSender;
 import com.example.newEcom.utils.FirebaseUtil;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -39,44 +32,45 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.security.auth.Subject;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import cn.pedant.SweetAlert.SweetAlertDialog;
 
-//import cn.pedant.SweetAlert.SweetAlertDialog;
-
 public class CheckoutActivity extends AppCompatActivity {
+    private static final String TAG = "CheckoutActivity";
+
     TextView subtotalTextView, deliveryTextView, totalTextView, stockErrorTextView;
     Button checkoutBtn;
     ImageView backBtn;
 
     SweetAlertDialog dialog;
 
-    int subTotal, count=0;
-    volatile boolean adequateStock = true, done = false;
+    int subTotal, count = 0;
+    boolean adequateStock = true;
 
     EditText nameEditText, emailEditText, phoneEditText, addressEditText, commentEditText;
     String name, email, phone, address, comment;
 
-    final int[] prevOrderId = new int[1];
-    final int[] countOfOrderedItems = new int[1];
-    final int[] priceOfOrders = new int[1];
+    int prevOrderId = 0;
+    int countOfOrderedItems = 0;
+    int priceOfOrders = 0;
 
-    final List<String>[] productDocId = new ArrayList[1];
-    final List<Integer>[] oldStock = new ArrayList[1];
-    final List<Integer>[] quan = new ArrayList[1];
-    final List<String>[] lessStock = new ArrayList[1];
+    // Lists (không dùng trick with final array)
+    List<String> productDocId;
+    List<Integer> oldStock;
+    List<Integer> quan;
+    List<String> lessStock;
 
-    final List<String>[] cartDocument = new ArrayList[1];
-    final List<String>[] productName = new ArrayList[1];
-    final List<Integer>[] productPrice = new ArrayList[1];
-    final List<Integer>[] productQuantity = new ArrayList[1];
+    List<String> cartDocument;
+    List<String> productName;
+    List<Integer> productPrice;
+    List<Integer> productQuantity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_checkout);
+
         subtotalTextView = findViewById(R.id.subtotalTextView);
         deliveryTextView = findViewById(R.id.deliveryTextView);
         totalTextView = findViewById(R.id.totalTextView);
@@ -100,242 +94,368 @@ public class CheckoutActivity extends AppCompatActivity {
             totalTextView.setText("₹ " + (subTotal + 500));
         }
 
-        checkoutBtn.setOnClickListener(v -> {
-            processOrder(new FirestoreCallback() {
-                @Override
-                public void onCallback(QueryDocumentSnapshot document, int quantity) {
-                    FirebaseUtil.getProducts().whereEqualTo("productId", document.get("productId"))
-                            .get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                                @Override
-                                public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                    if (task.isSuccessful()) {
-                                        String docId = task.getResult().getDocuments().get(0).getId();
-                                        int stock = (int) (long) task.getResult().getDocuments().get(0).get("stock");
-                                        productDocId[0].add(docId);
-                                        oldStock[0].add(stock);
-                                        quan[0].add(quantity);
-
-                                        if (stock < quantity){
-                                            adequateStock = false;
-                                            lessStock[0].add(document.get("name").toString());
-                                        }
-
-                                        done = true;
-                                        Log.i("done", "check");
-//                                                    callback.onCallback(docId, stock, quantity);
-//                                                    if (!adequateStock){
-//                                                        stockErrorTextView.setText("* One of the products has got out of stock :(");
-//                                                        stockErrorTextView.setVisibility(View.VISIBLE);
-//                                                    }
-
-                                    } else
-                                        Toast.makeText(CheckoutActivity.this, "Something went wrong", Toast.LENGTH_SHORT).show();
-                                }
-                            });
-
-
-                }
-
-                @Override
-                public void onCallback(boolean adequateStock) {
-                    if (!adequateStock){
-                        Log.i("check","1");
-                        String errorText = "*The following product(s) have less stock left:";
-                        for (int i=0; i<lessStock[0].size(); i++){
-                            errorText += "\n\t\t\t• "+ lessStock[0].get(i) + " has only "+oldStock[0].get(i)+" stock left";
-                        }
-                        stockErrorTextView.setText(errorText);
-                        stockErrorTextView.setVisibility(View.VISIBLE);
-                        Toast.makeText(CheckoutActivity.this, "One of the products has got less stock left :(", Toast.LENGTH_SHORT).show();
-                    }
-                    else {
-                        Log.i("check","2");
-                        changeToFirebase();
-                    }
-                }
-            });
-        });
-        backBtn.setOnClickListener(v -> {
-            onBackPressed();
-        });
-
-//        progressDialog = new ProgressDialog(this);
-//        progressDialog.setCancelable(false);
-//        progressDialog.setMessage("Processing...");
         dialog = new SweetAlertDialog(this, SweetAlertDialog.PROGRESS_TYPE);
         dialog.getProgressHelper().setBarColor(Color.parseColor("#A5DC86"));
         dialog.setTitleText("Loading...");
         dialog.setCancelable(false);
 
-//        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-//        getCartProducts();
+        checkoutBtn.setOnClickListener(v -> {
+            processOrder();
+        });
+
+        backBtn.setOnClickListener(v -> onBackPressed());
     }
 
-    private void changeToFirebase(){
-        Map<String, Object> map = new HashMap<>();
-        map.put("lastOrderId", prevOrderId[0] + 1);
-        map.put("countOfOrderedItems", countOfOrderedItems[0] + count);
-        map.put("priceOfOrders", priceOfOrders[0] + subTotal);
+    /**
+     * Bắt đầu quy trình xử lý đơn hàng
+     * - validate
+     * - lấy details (prevOrderId, countOfOrderedItems, priceOfOrders)
+     * - lấy cart items, lưu order items vào collection "orders"
+     * - kiểm tra stock cho từng sản phẩm (song song nhưng đếm completed)
+     * - nếu đủ: update details + update stock + xóa cart items (chờ tất cả task hoàn tất)
+     * - gửi email (ở background) và show success dialog
+     */
+    private void processOrder() {
+        if (!validate()) return;
 
-        FirebaseUtil.getDetails().update(map);
+        // đọc thông tin người dùng
+        name = nameEditText.getText().toString().trim();
+        email = emailEditText.getText().toString().trim();
+        phone = phoneEditText.getText().toString().trim();
+        address = addressEditText.getText().toString().trim();
+        comment = commentEditText.getText().toString().trim();
 
-        for (int i=0; i<productDocId[0].size(); i++){
-            FirebaseUtil.getProducts().document(productDocId[0].get(i)).update("stock", oldStock[0].get(i) - quan[0].get(i));
+        // khởi tạo lists
+        productDocId = new ArrayList<>();
+        oldStock = new ArrayList<>();
+        quan = new ArrayList<>();
+        lessStock = new ArrayList<>();
+
+        cartDocument = new ArrayList<>();
+        productName = new ArrayList<>();
+        productPrice = new ArrayList<>();
+        productQuantity = new ArrayList<>();
+
+        // show loading
+        if (!isFinishing() && !isDestroyed()) dialog.show();
+
+        // 1) lấy details trước
+        FirebaseUtil.getDetails().get().addOnCompleteListener(taskDetails -> {
+            if (taskDetails.isSuccessful() && taskDetails.getResult() != null) {
+                DocumentSnapshot doc = taskDetails.getResult();
+                Long lastOrderIdL = doc.getLong("lastOrderId");
+                Long countItemsL = doc.getLong("countOfOrderedItems");
+                Long priceOrdersL = doc.getLong("priceOfOrders");
+
+                prevOrderId = lastOrderIdL != null ? lastOrderIdL.intValue() : 0;
+                countOfOrderedItems = countItemsL != null ? countItemsL.intValue() : 0;
+                priceOfOrders = priceOrdersL != null ? priceOrdersL.intValue() : 0;
+
+                // 2) lấy cart items
+                FirebaseUtil.getCartItems().get().addOnCompleteListener(taskCart -> {
+                    if (taskCart.isSuccessful() && taskCart.getResult() != null) {
+                        QuerySnapshot cartSnapshot = taskCart.getResult();
+                        if (cartSnapshot.isEmpty()) {
+                            // giỏ hàng trống
+                            dismissDialogSafely();
+                            showErrorDialog("Your cart is empty.");
+                            return;
+                        }
+
+                        count = 0;
+                        // sẽ dùng atomic để đếm các product-check hoàn tất
+                        AtomicInteger completedChecks = new AtomicInteger(0);
+                        int totalItems = cartSnapshot.size();
+                        adequateStock = true;
+
+                        // Lưu tạm thông tin cart items để xử lý
+                        List<CartItemInfo> cartItems = new ArrayList<>();
+
+                        for (QueryDocumentSnapshot document : cartSnapshot) {
+                            count++;
+                            cartDocument.add(document.getId());
+
+                            String prodName = document.getString("name");
+                            productName.add(prodName != null ? prodName : "Unknown");
+
+                            Long priceL = document.getLong("price");
+                            int price = priceL != null ? priceL.intValue() : 0;
+                            productPrice.add(price);
+
+                            Long qtyL = document.getLong("quantity");
+                            int quantity = qtyL != null ? qtyL.intValue() : 0;
+                            productQuantity.add(quantity);
+
+                            count++; // Not necessary but original code increments count per item; keep consistent if needed
+                            // tạo OrderItemModel và lưu vào Firestore orders collection
+                            Long productIdL = document.getLong("productId");
+                            int productId = productIdL != null ? productIdL.intValue() : 0;
+
+                            OrderItemModel item = new OrderItemModel(prevOrderId + 1,
+                                    productId,
+                                    document.getString("name"),
+                                    document.getString("image"),
+                                    price,
+                                    quantity,
+                                    Timestamp.now(),
+                                    name,
+                                    email,
+                                    phone,
+                                    address,
+                                    comment);
+
+                            FirebaseFirestore.getInstance()
+                                    .collection("orders")
+                                    .document(FirebaseAuth.getInstance().getUid())
+                                    .collection("items")
+                                    .add(item)
+                                    .addOnFailureListener(e -> Log.e(TAG, "Failed to add order item: " + e.getMessage()));
+
+                            // Lưu thông tin tạm để check stock
+                            cartItems.add(new CartItemInfo(productId, document.getString("name"), quantity));
+                        }
+
+                        // nếu không có cart items thì thoát
+                        if (cartItems.isEmpty()) {
+                            dismissDialogSafely();
+                            showErrorDialog("No items in cart.");
+                            return;
+                        }
+
+                        // 3) kiểm tra stock cho từng cart item
+                        for (CartItemInfo ci : cartItems) {
+                            // Nếu productId = 0 (không hợp lệ), coi là lỗi
+                            if (ci.productId == 0) {
+                                adequateStock = false;
+                                lessStock.add(ci.name != null ? ci.name : "Unknown");
+                                oldStock.add(0);
+                                quan.add(ci.quantity);
+                                productDocId.add(""); // placeholder
+                                int done = completedChecks.incrementAndGet();
+                                if (done == cartItems.size()) {
+                                    onAllProductChecksCompleted();
+                                }
+                                continue;
+                            }
+
+                            FirebaseUtil.getProducts()
+                                    .whereEqualTo("productId", ci.productId)
+                                    .get()
+                                    .addOnCompleteListener(taskProd -> {
+                                        if (taskProd.isSuccessful() && taskProd.getResult() != null && !taskProd.getResult().isEmpty()) {
+                                            DocumentSnapshot prodDoc = taskProd.getResult().getDocuments().get(0);
+                                            String docId = prodDoc.getId();
+                                            Long stockL = prodDoc.getLong("stock");
+                                            int stock = stockL != null ? stockL.intValue() : 0;
+
+                                            productDocId.add(docId);
+                                            oldStock.add(stock);
+                                            quan.add(ci.quantity);
+
+                                            if (stock < ci.quantity) {
+                                                adequateStock = false;
+                                                lessStock.add(ci.name != null ? ci.name : "Unknown");
+                                            }
+                                        } else {
+                                            // product not found or error
+                                            Log.e(TAG, "Product lookup failed for productId=" + ci.productId);
+                                            adequateStock = false;
+                                            lessStock.add(ci.name != null ? ci.name : "Unknown");
+                                            productDocId.add(""); // placeholder
+                                            oldStock.add(0);
+                                            quan.add(ci.quantity);
+                                        }
+
+                                        int done = completedChecks.incrementAndGet();
+                                        if (done == cartItems.size()) {
+                                            onAllProductChecksCompleted();
+                                        }
+                                    });
+                        }
+
+                    } else {
+                        // Lỗi lấy cart
+                        dismissDialogSafely();
+                        showErrorDialog("Something went wrong retrieving cart items.");
+                    }
+                });
+
+            } else {
+                // Lỗi lấy details
+                dismissDialogSafely();
+                showErrorDialog("Something went wrong retrieving app details.");
+            }
+        });
+    }
+
+    private void onAllProductChecksCompleted() {
+        // tất cả product đã được check
+        dismissDialogSafely();
+
+        if (!adequateStock) {
+            // show lỗi stock
+            StringBuilder errorText = new StringBuilder("*The following product(s) have less stock left:");
+            for (int i = 0; i < lessStock.size(); i++) {
+                String name = lessStock.get(i);
+                int stock = (i < oldStock.size() ? oldStock.get(i) : 0);
+                errorText.append("\n\t• ").append(name).append(" has only ").append(stock).append(" stock left");
+            }
+            if (!isFinishing() && !isDestroyed()) {
+                stockErrorTextView.setText(errorText.toString());
+                stockErrorTextView.setVisibility(TextView.VISIBLE);
+                Toast.makeText(CheckoutActivity.this, "One or more products have insufficient stock.", Toast.LENGTH_LONG).show();
+            }
+            return;
         }
-        Log.i("check 3",productDocId[0].size()+"");
 
-        for (String docId : cartDocument[0]){
-            FirebaseUtil.getCartItems().document(docId)
-                    .delete().addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
+        // Nếu đủ stock -> thực hiện cập nhật lên Firebase
+        changeToFirebase();
+    }
+
+    private void changeToFirebase() {
+        // Chuẩn bị dữ liệu cập nhật chi tiết đơn hàng
+        Map<String, Object> detailsUpdate = new HashMap<>();
+        detailsUpdate.put("lastOrderId", prevOrderId + 1);
+        detailsUpdate.put("countOfOrderedItems", countOfOrderedItems + count);
+        detailsUpdate.put("priceOfOrders", priceOfOrders + subTotal);
+
+        List<Task<?>> tasks = new ArrayList<>();
+
+        // ✅ Cập nhật hoặc tạo mới document "dashboard/details"
+        Task<Void> detailsTask = FirebaseUtil.getDetails()
+                .get()
+                .continueWithTask(task -> {
+                    if (task.isSuccessful() && task.getResult().exists()) {
+                        // Nếu document đã tồn tại → update
+                        return FirebaseUtil.getDetails().update(detailsUpdate);
+                    } else {
+                        // Nếu chưa có → tạo mới
+                        return FirebaseUtil.getDetails().set(detailsUpdate);
+                    }
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "❌ Lỗi khi cập nhật hoặc tạo details: " + e.getMessage()));
+        tasks.add(detailsTask);
+
+        // ✅ Cập nhật tồn kho sản phẩm
+        for (int i = 0; i < productDocId.size(); i++) {
+            String prodDocId = productDocId.get(i);
+            if (prodDocId == null || prodDocId.isEmpty()) continue;
+
+            int newStock = oldStock.get(i) - quan.get(i);
+            Task<Void> updateStockTask = FirebaseUtil.getProducts()
+                    .document(prodDocId)
+                    .update("stock", newStock)
+                    .addOnFailureListener(e -> Log.e(TAG, "❌ Lỗi khi cập nhật tồn kho sản phẩm: " + e.getMessage()));
+            tasks.add(updateStockTask);
+        }
+
+        // ✅ Xóa sản phẩm trong giỏ hàng
+        for (String docId : cartDocument) {
+            if (docId == null || docId.isEmpty()) continue;
+
+            Task<Void> deleteCartTask = FirebaseUtil.getCartItems()
+                    .document(docId)
+                    .delete()
+                    .addOnFailureListener(e -> Log.e(TAG, "❌ Lỗi khi xóa sản phẩm trong giỏ hàng: " + e.getMessage()));
+            tasks.add(deleteCartTask);
+        }
+
+        // ✅ Chờ tất cả tác vụ hoàn tất
+        Tasks.whenAll(tasks)
+                .addOnCompleteListener(allTasks -> {
+                    // Gửi email xác nhận
+                    sendOrderConfirmationEmail();
+
+                    // Hiển thị thông báo thành công
+                    runOnUiThread(() -> {
+                        if (!isFinishing() && !isDestroyed()) {
+                            new SweetAlertDialog(CheckoutActivity.this, SweetAlertDialog.SUCCESS_TYPE)
+                                    .setTitleText("Order placed Successfully!")
+                                    .setContentText("You will shortly receive an email confirming the order details.")
+                                    .setConfirmClickListener(dialog -> {
+                                        Intent intent = new Intent(CheckoutActivity.this, MainActivity.class);
+                                        intent.putExtra("orderPlaced", true);
+                                        startActivity(intent);
+                                        finish();
+                                    })
+                                    .show();
                         }
                     });
-        }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Một số tác vụ thất bại: " + e.getMessage());
+                    dismissDialogSafely();
+                    showErrorDialog("Something went wrong while finalizing your order. Please try again.");
+                });
+    }
 
+
+    // ----------------------------
+// Hàm con để gửi email xác nhận
+// ----------------------------
+    private void sendOrderConfirmationEmail() {
         String subject = "Your Order is successfully placed with ShopEase!";
-        String messageBody = "Dear " + name + ",\n\n" +
-                "Thank you for placing your order with ShopEase. We are excited to inform you that your order has been successfully placed.\n\n" +
-                "Order Details:\n" +
-                "-----------------------------------------------------------------------------------\n" +
-                String.format("%-50s %-10s %-10s\n", "Product Name", "Quantity", "Price") +
-                "-----------------------------------------------------------------------------------\n";
-        for (int i = 0; i < productName[0].size(); i++) {
-            messageBody += String.format("%-50s %-10s ₹%-10d\n", productName[0].get(i), productQuantity[0].get(i), productPrice[0].get(i));
+        StringBuilder body = new StringBuilder();
+
+        body.append("Dear ").append(name).append(",\n\n")
+                .append("Thank you for placing your order with ShopEase. We are excited to inform you that your order has been successfully placed.\n\n")
+                .append("Order Details:\n")
+                .append("------------------------------------------------------------\n")
+                .append(String.format("%-40s %-10s %-10s\n", "Product Name", "Quantity", "Price"))
+                .append("------------------------------------------------------------\n");
+
+        for (int i = 0; i < productName.size(); i++) {
+            String pName = productName.get(i);
+            int pQty = i < productQuantity.size() ? productQuantity.get(i) : 0;
+            int pPrice = i < productPrice.size() ? productPrice.get(i) : 0;
+            body.append(String.format("%-40s %-10d ₹%-10d\n", pName, pQty, pPrice));
         }
-        messageBody += "-----------------------------------------------------------------------------\n" +
-                String.format("%-73s ₹%-10d\n", "Total:", subTotal) +
-                "-----------------------------------------------------------------------------\n\n" +
-                "Thank you for choosing our service. If you have any questions or concerns, feel free to contact our customer support.\n\n" +
-                "Best Regards,\n" +
-                "ShopEase Team";
-        EmailSender emailSender = new EmailSender(subject, messageBody, email);
-        Log.i("startEmail", email);
-        emailSender.sendEmail();
 
-        new SweetAlertDialog(CheckoutActivity.this, SweetAlertDialog.SUCCESS_TYPE)
-                .setTitleText("Order placed Successfully!")
-                .setContentText("You will shortly receive an email confirming the order details.")
-                .setConfirmClickListener(new SweetAlertDialog.OnSweetClickListener() {
-                    @Override
-                    public void onClick(SweetAlertDialog sweetAlertDialog) {
-                        Intent intent = new Intent(CheckoutActivity.this, MainActivity.class);
-                        intent.putExtra("orderPlaced", true);
-                        startActivity(intent);
-                        finish();
-                    }
-                }).show();
+        body.append("------------------------------------------------------------\n")
+                .append(String.format("%-60s ₹%-10d\n", "Total:", subTotal))
+                .append("------------------------------------------------------------\n\n")
+                .append("Thank you for choosing our service. If you have any questions or concerns, feel free to contact our customer support.\n\n")
+                .append("Best Regards,\n")
+                .append("ShopEase Team");
+
+        // Gửi email trong luồng riêng
+        new Thread(() -> {
+            try {
+                EmailSender emailSender = new EmailSender(subject, body.toString(), email);
+                emailSender.sendEmail();
+                Log.i(TAG, "✅ Email xác nhận đã được gửi thành công.");
+            } catch (Exception e) {
+                Log.e(TAG, "❌ Gửi email thất bại: " + e.getMessage());
+            }
+        }).start();
     }
 
-    private void processOrder(FirestoreCallback callback) {
-        if (!validate())
-            return;
 
-        name = nameEditText.getText().toString();
-        email = emailEditText.getText().toString();
-        phone = phoneEditText.getText().toString();
-        address = addressEditText.getText().toString();
-        comment = commentEditText.getText().toString();
-
-        productDocId[0] = new ArrayList<>();
-        oldStock[0] = new ArrayList<>();
-        quan[0] = new ArrayList<>();
-        lessStock[0] = new ArrayList<>();
-
-        cartDocument[0] = new ArrayList<>();
-        productName[0] = new ArrayList<>();
-        productPrice[0] = new ArrayList<>();
-        productQuantity[0] = new ArrayList<>();
-        //        final OrderItemModel[] item = new OrderItemModel[1];
-        FirebaseUtil.getDetails().get()
-                .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                        prevOrderId[0] = (int) (long) task.getResult().get("lastOrderId");
-                        countOfOrderedItems[0] = (int) (long) task.getResult().get("countOfOrderedItems");
-                        priceOfOrders[0] = (int) (long) task.getResult().get("priceOfOrders");
-                    }
-                });
-
-        FirebaseUtil.getCartItems()
-                .get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (task.isSuccessful()) {
-                            for (QueryDocumentSnapshot document : task.getResult()) {
-                                count++;
-                                cartDocument[0].add(document.getId());
-                                productName[0].add(document.get("name").toString());
-                                productPrice[0].add((int) (long) document.get("price"));
-                                productQuantity[0].add((int) (long) document.get("quantity"));
-
-                                OrderItemModel item = new OrderItemModel(prevOrderId[0] + 1, (int) (long) document.get("productId"), document.get("name").toString(), document.get("image").toString(),
-                                        (int) (long) document.get("price"), (int) (long) document.get("quantity"), Timestamp.now(), name, email, phone, address, comment);
-
-                                FirebaseFirestore.getInstance().collection("orders").document(FirebaseAuth.getInstance().getUid()).collection("items").add(item);
-                                int quantity = (int) (long) document.get("quantity");
-
-                                callback.onCallback(document, quantity);
-
-                            }
-                            Log.i("check0", done+"");
-
-                            dialog.show();
-                            new Handler().postDelayed(new Runnable() {
-                                @Override
-                                public void run() {
-                                    dialog.dismiss();
-                                    callback.onCallback(adequateStock);
-                                }
-                            }, 2000);
-
-
-//                            new KAlertDialog(CheckoutActivity.this, KAlertDialog.SUCCESS_TYPE, false)
-//                                    .setTitleText("Order placed Successfully!")
-//                                    .setContentText("You will shortly receive an email confirming the order details.")
-//                                    .setConfirmClickListener("Done", new KAlertDialog.KAlertClickListener() {
-//                                        @Override
-//                                        public void onClick(KAlertDialog kAlertDialog) {
-//                                            Intent intent = new Intent(CheckoutActivity.this, MainActivity.class);
-//                                            intent.putExtra("orderPlaced", true);
-//                                            startActivity(intent);
-//                                            finish();
-//                                        }
-//                                    })
-//                                    .show();
-                        } else {
-                            new SweetAlertDialog(CheckoutActivity.this, SweetAlertDialog.ERROR_TYPE)
-                                    .setTitleText("Order Failed!")
-                                    .setContentText("Something went wrong, please try again.")
-                                    .setConfirmClickListener(new SweetAlertDialog.OnSweetClickListener() {
-                                        @Override
-                                        public void onClick(SweetAlertDialog sweetAlertDialog) {
-                                            Intent intent = new Intent(CheckoutActivity.this, MainActivity.class);
-                                            startActivity(intent);
-                                            finish();
-                                        }
-                                    }).show();
-//                            Toast.makeText(CheckoutActivity.this, "Something went wrong", Toast.LENGTH_SHORT).show();
-//                            new AlertDialog.Builder(CheckoutActivity.this)
-//                                    .setTitle("Order Failed")
-//                                    .setMessage("Something went wrong, please try again.")
-//                                    .setPositiveButton("Close", new DialogInterface.OnClickListener() {
-//                                        @Override
-//                                        public void onClick(DialogInterface dialogInterface, int i) {
-//
-//                                        }
-//                                    }).show();
-                        }
-                    }
-                });
+    private void dismissDialogSafely() {
+        runOnUiThread(() -> {
+            try {
+                if (dialog != null && dialog.isShowing() && !isFinishing() && !isDestroyed()) {
+                    dialog.dismiss();
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error dismissing dialog: " + e.getMessage());
+            }
+        });
     }
 
-    public interface FirestoreCallback {
-//        void onCallback(String docid, int oldstock, int quan);
-
-        void onCallback(QueryDocumentSnapshot document, int quantity);
-
-        void onCallback(boolean adequateStock);
+    private void showErrorDialog(String message) {
+        runOnUiThread(() -> {
+            if (!isFinishing() && !isDestroyed()) {
+                new SweetAlertDialog(CheckoutActivity.this, SweetAlertDialog.ERROR_TYPE)
+                        .setTitleText("Order Failed!")
+                        .setContentText(message)
+                        .setConfirmClickListener(sweetAlertDialog -> {
+                            Intent intent = new Intent(CheckoutActivity.this, MainActivity.class);
+                            startActivity(intent);
+                            finish();
+                        }).show();
+            }
+        });
     }
 
     private boolean validate() {
@@ -347,15 +467,14 @@ public class CheckoutActivity extends AppCompatActivity {
         if (emailEditText.getText().toString().trim().length() == 0) {
             emailEditText.setError("Email is required");
             isValid = false;
-        } else if (!Patterns.EMAIL_ADDRESS.matcher(emailEditText.getText().toString().trim()).matches()){
+        } else if (!Patterns.EMAIL_ADDRESS.matcher(emailEditText.getText().toString().trim()).matches()) {
             emailEditText.setError("Email is not valid");
             isValid = false;
         }
         if (phoneEditText.getText().toString().trim().length() == 0) {
             phoneEditText.setError("Phone Number is required");
             isValid = false;
-        }
-        else if (phoneEditText.getText().toString().trim().length() != 10) {
+        } else if (phoneEditText.getText().toString().trim().length() != 10) {
             phoneEditText.setError("Phone number is not valid");
             isValid = false;
         }
@@ -366,35 +485,18 @@ public class CheckoutActivity extends AppCompatActivity {
         return isValid;
     }
 
+    // Class helper để lưu tạm thông tin cart item
+    private static class CartItemInfo {
+        int productId;
+        String name;
+        int quantity;
 
-//    private void getCartProducts() {
-//        cartRecyclerView = findViewById(R.id.cartRecyclerView);
-//        productModelArrayList = new ArrayList<>();
-//
-//        cart = TinyCartHelper.getCart();
-//        for (Map.Entry<Item, Integer> item : cart.getAllItemsWithQty().entrySet()){
-//            ProductModel product = (ProductModel) item.getKey();
-//            int quantity = item.getValue();
-////            product.setQuantity(quantity);
-//
-//            productModelArrayList.add(product);
-//        }
-//
-//        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-//        DividerItemDecoration itemDecoration = new DividerItemDecoration(this, layoutManager.getOrientation());
-//        cartRecyclerView.setLayoutManager(layoutManager);
-//        cartRecyclerView.addItemDecoration(itemDecoration);
-////        cartAdapter = new CartAdapter(this, productModelArrayList, new CartAdapter.CartListener() {
-////            @Override
-////            public void onQuantityChanged() {
-////                checkoutPriceTextView.setText(String.format("Rs. %.2f",cart.getTotalPrice()));
-////            }
-////        });
-//        cartRecyclerView.setAdapter(cartAdapter);
-//
-////        checkoutPriceTextView.setText(String.format("Rs. %.2f",cart.getTotalPrice()));
-////        finalPriceTextView.setText(String.format("Rs. %.2f",cart.getTotalPrice().doubleValue()+500));
-//    }
+        CartItemInfo(int productId, String name, int quantity) {
+            this.productId = productId;
+            this.name = name;
+            this.quantity = quantity;
+        }
+    }
 
     @Override
     public boolean onSupportNavigateUp() {
