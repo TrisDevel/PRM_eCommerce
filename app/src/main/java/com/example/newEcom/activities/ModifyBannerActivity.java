@@ -3,7 +3,6 @@ package com.example.newEcom.activities;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -18,7 +17,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.example.newEcom.R;
 import com.example.newEcom.model.BannerModel;
 import com.example.newEcom.utils.FirebaseUtil;
@@ -30,13 +28,12 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import cn.pedant.SweetAlert.SweetAlertDialog;
 
-public class        ModifyBannerActivity extends AppCompatActivity {
+public class ModifyBannerActivity extends AppCompatActivity {
+
     LinearLayout detailsLinearLayout;
     TextInputEditText descEditText;
     Button imageBtn, modifyBannerBtn;
@@ -59,77 +56,62 @@ public class        ModifyBannerActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_modify_banner);
 
+        // --- Init views ---
         detailsLinearLayout = findViewById(R.id.detailsLinearLayout);
         idDropDown = findViewById(R.id.idDropDown);
         descEditText = findViewById(R.id.descriptionEditText);
         statusDropDown = findViewById(R.id.statusDropDown);
-
         bannerImageView = findViewById(R.id.bannerImageView);
         imageBtn = findViewById(R.id.imageBtn);
         modifyBannerBtn = findViewById(R.id.modifyBannerBtn);
         backBtn = findViewById(R.id.backBtn);
         removeImageBtn = findViewById(R.id.removeImageBtn);
 
-        imageBtn.setOnClickListener(v -> {
-            Intent intent = new Intent();
-            intent.setAction(Intent.ACTION_GET_CONTENT);
-            intent.setType("image/*");
-            startActivityForResult(intent, 101);
-        });
-
-        modifyBannerBtn.setOnClickListener(v -> {
-            updateToFirebase();
-        });
-
-        backBtn.setOnClickListener(v -> {
-            onBackPressed();
-        });
-
-        removeImageBtn.setOnClickListener(v -> {
-            removeImage();
-        });
-
         dialog = new SweetAlertDialog(this, SweetAlertDialog.PROGRESS_TYPE);
         dialog.getProgressHelper().setBarColor(Color.parseColor("#A5DC86"));
         dialog.setTitleText("Uploading image...");
         dialog.setCancelable(false);
 
-        initDropDown(new MyCallback() {
-            @Override
-            public void onCallback(List<BannerModel> bannerList, List<String> docIdList) {
-                String[] ids = new String[bannerList.size()];
-                for (int i=0; i<bannerList.size(); i++)
-                    ids[i] = Integer.toString(bannerList.get(i).getBannerId());
+        // --- Click listeners ---
+        backBtn.setOnClickListener(v -> onBackPressed());
+        imageBtn.setOnClickListener(v -> pickImage());
+        removeImageBtn.setOnClickListener(v -> removeImage());
+        modifyBannerBtn.setOnClickListener(v -> updateToFirebase());
 
-                idAdapter = new ArrayAdapter<>(context, R.layout.dropdown_item, ids);
-                idDropDown.setAdapter(idAdapter);
-                idDropDown.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                        docId = docIdList.get(i);
-                        initBanner(bannerList.get(i));
-                    }
-                });
-            }
+        // --- Init Banner IDs Dropdown ---
+        initDropDown((bannerList, docIdList) -> {
+            String[] ids = new String[bannerList.size()];
+            for (int i = 0; i < bannerList.size(); i++)
+                ids[i] = Integer.toString(bannerList.get(i).getBannerId());
+
+            idAdapter = new ArrayAdapter<>(context, R.layout.dropdown_item, ids);
+            idDropDown.setAdapter(idAdapter);
+
+            idDropDown.setOnItemClickListener((parent, view, position, id) -> {
+                docId = docIdList.get(position);
+                initBanner(bannerList.get(position));
+            });
         });
     }
 
+    private void pickImage() {
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        startActivityForResult(intent, 101);
+    }
+
     private void initDropDown(MyCallback myCallback) {
-        FirebaseUtil.getBanner().orderBy("bannerId")
-                .get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (task.isSuccessful()) {
-                            int i = 0;
-                            List<BannerModel> banners = new ArrayList<>();
-                            List<String> docIds = new ArrayList<>();
-                            for (QueryDocumentSnapshot document : task.getResult()) {
-                                banners.add(document.toObject(BannerModel.class));
-                                docIds.add(document.getId());
-                                i++;
-                            }
-                            myCallback.onCallback(banners, docIds);
+        FirebaseUtil.getBanner().orderBy("bannerId").get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        List<BannerModel> banners = new ArrayList<>();
+                        List<String> docIds = new ArrayList<>();
+                        for (QueryDocumentSnapshot doc : task.getResult()) {
+                            banners.add(doc.toObject(BannerModel.class));
+                            docIds.add(doc.getId());
                         }
+                        myCallback.onCallback(banners, docIds);
                     }
                 });
     }
@@ -138,69 +120,56 @@ public class        ModifyBannerActivity extends AppCompatActivity {
         currBanner = model;
         bannerId = currBanner.getBannerId();
 
-        SweetAlertDialog dialog = new SweetAlertDialog(this, SweetAlertDialog.PROGRESS_TYPE);
-        dialog.getProgressHelper().setBarColor(Color.parseColor("#A5DC86"));
-        dialog.setTitleText("Modifying...");
-        dialog.setCancelable(false);
-//        dialog.show();
+        // Load image
+        Picasso.get().load(currBanner.getBannerImage()).into(bannerImageView);
 
-        Picasso.get().load(currBanner.getBannerImage()).into(bannerImageView, new Callback() {
-            @Override
-            public void onSuccess() {
-                dialog.dismiss();
-            }
-            @Override
-            public void onError(Exception e) {
-            }
-        });
-
-        statusAdapter = new ArrayAdapter<>(context, R.layout.dropdown_item, new String[]{"Live", "Not Live"});
-        statusDropDown.setAdapter(statusAdapter);
-        statusDropDown.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                status = adapterView.getItemAtPosition(i).toString();
-                Toast.makeText(context, status, Toast.LENGTH_SHORT).show();
-            }
-        });
-
+        // Show details layout
         detailsLinearLayout.setVisibility(View.VISIBLE);
         bannerImageView.setVisibility(View.VISIBLE);
         removeImageBtn.setVisibility(View.VISIBLE);
 
         descEditText.setText(currBanner.getDescription());
-        statusDropDown.setText(currBanner.getStatus());
+
+        // --- Status dropdown ---
+        String[] statusOptions = {"Live", "Not Live"};
+        statusAdapter = new ArrayAdapter<>(context, R.layout.dropdown_item, statusOptions);
+        statusDropDown.setAdapter(statusAdapter);
+
+        // Set default value
+        if(currBanner.getStatus().equals("Active") || currBanner.getStatus().equals("Inactive")){
+            statusDropDown.setText(currBanner.getStatus(), false); // false = không trigger filter
+        }
+
+        statusDropDown.setOnItemClickListener((parent, view, position, id) -> {
+            status = parent.getItemAtPosition(position).toString();
+            Toast.makeText(context, "Selected: " + status, Toast.LENGTH_SHORT).show();
+        });
     }
 
-    private void updateToFirebase(){
-        if (!validate())
-            return;
+    private void updateToFirebase() {
+        if (!validate()) return;
 
         SweetAlertDialog dialog = new SweetAlertDialog(this, SweetAlertDialog.PROGRESS_TYPE);
         dialog.getProgressHelper().setBarColor(Color.parseColor("#A5DC86"));
         dialog.setTitleText("Loading...");
         dialog.setCancelable(false);
         dialog.show();
-        if (imageUri != null ) {
+
+        if (imageUri != null) {
             FirebaseUtil.getBannerImageReference(bannerId + "").putFile(imageUri)
-                    .addOnCompleteListener(t -> {
-                        FirebaseUtil.getBannerImageReference(bannerId + "").getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                            @Override
-                            public void onSuccess(Uri uri) {
+                    .addOnCompleteListener(t -> FirebaseUtil.getBannerImageReference(bannerId + "").getDownloadUrl()
+                            .addOnSuccessListener(uri -> {
                                 bannerImage = uri.toString();
                                 FirebaseUtil.getBanner().document(docId).update("bannerImage", bannerImage);
                                 updateDataToFirebase();
                                 dialog.dismiss();
-                                Toast.makeText(context, "Banner has been modified successfully!", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(context, "Banner modified successfully!", Toast.LENGTH_SHORT).show();
                                 finish();
-                            }
-                        });
-                    });
-        }
-        else {
+                            }));
+        } else {
             updateDataToFirebase();
             dialog.dismiss();
-            Toast.makeText(context, "Banner has been modified successfully!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "Banner modified successfully!", Toast.LENGTH_SHORT).show();
             finish();
         }
     }
@@ -214,15 +183,14 @@ public class        ModifyBannerActivity extends AppCompatActivity {
 
     private boolean validate() {
         boolean isValid = true;
-        if (statusDropDown.getText().toString().trim().length() == 0) {
+        if (statusDropDown.getText().toString().trim().isEmpty()) {
             statusDropDown.setError("Status is required");
             isValid = false;
         }
-        if (descEditText.getText().toString().trim().length() == 0) {
+        if (descEditText.getText().toString().trim().isEmpty()) {
             descEditText.setError("Description is required");
             isValid = false;
         }
-
         if (!imageUploaded) {
             Toast.makeText(context, "Image is not selected", Toast.LENGTH_SHORT).show();
             isValid = false;
@@ -237,49 +205,40 @@ public class        ModifyBannerActivity extends AppCompatActivity {
                 .setContentText("Do you want to remove this image?")
                 .setConfirmText("Yes")
                 .setCancelText("No")
-                .setConfirmClickListener(new SweetAlertDialog.OnSweetClickListener() {
-                    @Override
-                    public void onClick(SweetAlertDialog sweetAlertDialog) {
-                        imageUploaded = false;
-                        bannerImageView.setImageDrawable(null);
-                        bannerImageView.setVisibility(View.GONE);
-                        removeImageBtn.setVisibility(View.GONE);
-                        alertDialog.cancel();
-                    }
+                .setConfirmClickListener(dialog -> {
+                    imageUploaded = false;
+                    bannerImageView.setImageDrawable(null);
+                    bannerImageView.setVisibility(View.GONE);
+                    removeImageBtn.setVisibility(View.GONE);
+                    dialog.cancel();
                 }).show();
     }
 
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == 101) {
-            if (data != null && data.getData() != null) {
-                imageUri = data.getData();
-                imageUploaded = true;
-                dialog.show();
+        if (requestCode == 101 && data != null && data.getData() != null) {
+            imageUri = data.getData();
+            imageUploaded = true;
+            dialog.show();
 
-                Picasso.get().load(imageUri).into(bannerImageView, new Callback() {
-                    @Override
-                    public void onSuccess() {
-                        dialog.dismiss();
-                    }
-                    @Override
-                    public void onError(Exception e) {
-                    }
-                });
-                bannerImageView.setVisibility(View.VISIBLE);
-                removeImageBtn.setVisibility(View.VISIBLE);
-            }
+            Picasso.get().load(imageUri).into(bannerImageView, new Callback() {
+                @Override
+                public void onSuccess() {
+                    dialog.dismiss();
+                }
+
+                @Override
+                public void onError(Exception e) { }
+            });
+
+            bannerImageView.setVisibility(View.VISIBLE);
+            removeImageBtn.setVisibility(View.VISIBLE);
         }
     }
 
     public interface MyCallback {
         void onCallback(List<BannerModel> banners, List<String> docIds);
     }
-
-//    @Override
-//    public void onBackPressed() {
-//        super.onBackPressed();
-//        FirebaseUtil.getBannerImageReference(bannerId + "").delete();
-//    }
 }
