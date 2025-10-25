@@ -8,11 +8,14 @@ public class OrderItemModel {
     private int price, quantity;
     private Timestamp timestamp;
     private String fullName, email, phoneNumber, address, comments;
+    private String status;
+    private String transactionId;  // ✅ MoMo transaction ID
+    private String paymentMethod;  // ✅ COD, MOMO, ZALOPAY
 
     public OrderItemModel() {
     }
 
-    public OrderItemModel(int orderId, int productId, String name, String image, int price, int quantity, Timestamp timestamp, String fullName, String email, String phoneNumber, String address, String comments) {
+    public OrderItemModel(int orderId, int productId, String name, String image, int price, int quantity, Timestamp timestamp, String fullName, String email, String phoneNumber, String address, String comments, String status) {
         this.orderId = orderId;
         this.productId = productId;
         this.name = name;
@@ -25,6 +28,7 @@ public class OrderItemModel {
         this.phoneNumber = phoneNumber;
         this.address = address;
         this.comments = comments;
+        this.status = status;
     }
 
     public int getOrderId() {
@@ -121,5 +125,30 @@ public class OrderItemModel {
 
     public void setComments(String comments) {
         this.comments = comments;
+    }
+    public String getStatus() {
+        return status;
+    }
+    
+    public void setStatus(String status) {
+        this.status = status;
+    }
+    
+    // ✅ GETTER/SETTER CHO TRANSACTION ID
+    public String getTransactionId() {
+        return transactionId;
+    }
+    
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
+    }
+    
+    // ✅ GETTER/SETTER CHO PAYMENT METHOD
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+    
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 }
