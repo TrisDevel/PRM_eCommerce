@@ -87,6 +87,21 @@
             android:screenOrientation="portrait"
             android:exported="false"
             android:theme="@style/Admin.Theme.ECom" />
+        <activity
+            android:name=".activities.UserManagementActivity"
+            android:screenOrientation="portrait"
+            android:exported="false"
+            android:theme="@style/Admin.Theme.ECom" />
+        <activity
+            android:name=".activities.UserListActivity"
+            android:screenOrientation="portrait"
+            android:exported="false"
+            android:theme="@style/Admin.Theme.ECom" />
+        <activity
+            android:name=".activities.UserDetailsActivity"
+            android:screenOrientation="portrait"
+            android:exported="false"
+            android:theme="@style/Admin.Theme.ECom" />
 
         <meta-data
             android:name="preloaded_fonts"

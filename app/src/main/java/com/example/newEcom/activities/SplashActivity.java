@@ -61,6 +61,7 @@ public class SplashActivity extends AppCompatActivity {
                     }
                 }
 
+
                 Class<?> dest;
                 if (ADMIN_EMAIL.equals(email)) {
                     Log.wtf(TAG, "Matched ADMIN -> AdminActivity");
