@@ -28,8 +28,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
     packagingOptions {
-        merge ("META-INF/NOTICE.md")
-        merge ("META-INF/LICENSE.md")
+        resources {
+            merges += setOf("META-INF/NOTICE.md", "META-INF/LICENSE.md")
+        }
     }
 }
 
@@ -72,4 +73,6 @@ dependencies {
     implementation ("com.facebook.shimmer:shimmer:0.5.0")
     //Lottie Animation
     implementation ("com.airbnb.android:lottie:6.3.0")
+
+    implementation("com.google.firebase:firebase-messaging:23.4.0")
 }
