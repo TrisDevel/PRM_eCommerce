@@ -37,7 +37,7 @@ public class MoMoPayment {
                 String momoOrderId = "ORDER_" + orderId + "_" + System.currentTimeMillis();
                 String requestId = momoOrderId;
                 String redirectUrl = "ecommerce://payment-result"; // Deep link về app
-                String ipnUrl = "https://webhook.site/your-webhook-id"; // IPN endpoint (optional)
+                String ipnUrl = "https://saved-saved-honeybee.ngrok-free.app/momo/notify"; // IPN endpoint (optional)
                 String requestType = "payWithMethod"; // hoặc "captureWallet"
                 
                 // ✅ GỬI ORDER ID QUA EXTRA DATA (Base64 encoded)
