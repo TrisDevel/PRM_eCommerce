@@ -28,13 +28,14 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
     packagingOptions {
-        merge ("META-INF/NOTICE.md")
-        merge ("META-INF/LICENSE.md")
+        resources {
+            merges += setOf("META-INF/NOTICE.md", "META-INF/LICENSE.md")
+        }
     }
 }
 
 dependencies {
-
+    implementation("androidx.browser:browser:1.7.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
@@ -45,6 +46,7 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx:24.10.0")
     implementation("com.firebaseui:firebase-ui-firestore:8.0.2")
     implementation("com.google.firebase:firebase-storage:20.3.0")
+    implementation("androidx.activity:activity:1.8.2")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
@@ -72,4 +74,7 @@ dependencies {
     implementation ("com.facebook.shimmer:shimmer:0.5.0")
     //Lottie Animation
     implementation ("com.airbnb.android:lottie:6.3.0")
+
+    implementation("com.google.firebase:firebase-messaging:23.4.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

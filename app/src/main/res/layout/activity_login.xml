@@ -23,7 +23,7 @@
             android:layout_marginLeft="32dp"
             android:layout_marginRight="32dp"
             android:text="Welcome\nBack"
-            android:textColor="#EA6D35"
+            android:textColor="@color/my_primary"
             android:textSize="40sp"
             android:textStyle="bold" />
 
@@ -89,7 +89,7 @@
             android:drawablePadding="16dp"
             android:padding="8dp"
             android:text="Google"
-            android:textColor="#3b688c"
+            android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold" />
 
