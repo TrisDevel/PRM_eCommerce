@@ -8,6 +8,7 @@
     android:orientation="vertical"
     tools:context=".activities.ModifyBannerActivity">
 
+    <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -33,6 +34,7 @@
 
     </LinearLayout>
 
+    <!-- CardView -->
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -50,6 +52,7 @@
                 android:layout_margin="12dp"
                 android:orientation="vertical">
 
+                <!-- Banner ID Dropdown -->
                 <com.google.android.material.textfield.TextInputLayout
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                     android:layout_width="match_parent"
@@ -68,6 +71,7 @@
                         android:textSize="18sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- Details layout (hidden by default) -->
                 <LinearLayout
                     android:id="@+id/detailsLinearLayout"
                     android:layout_width="match_parent"
@@ -75,23 +79,18 @@
                     android:orientation="vertical"
                     android:visibility="gone">
 
+                    <!-- Image selection -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:orientation="horizontal">
 
-                        <com.google.android.material.textfield.TextInputLayout
+                        <Button
+                            android:id="@+id/imageBtn"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_gravity="center_vertical">
-
-                            <Button
-                                android:id="@+id/imageBtn"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Choose Image" />
-                        </com.google.android.material.textfield.TextInputLayout>
+                            android:text="Choose Image" />
 
                         <ImageView
                             android:id="@+id/bannerImageView"
@@ -119,6 +118,7 @@
 
                     </LinearLayout>
 
+                    <!-- Description -->
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
@@ -137,6 +137,7 @@
                             android:textSize="18sp" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <!-- Status Dropdown -->
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                         android:layout_width="match_parent"
@@ -151,6 +152,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="none"
+                            android:focusable="false"
+                            android:clickable="true"
                             android:textColor="@color/black"
                             android:textSize="18sp" />
                     </com.google.android.material.textfield.TextInputLayout>
@@ -161,6 +164,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
                         android:text="Modify Banner" />
+
                 </LinearLayout>
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>

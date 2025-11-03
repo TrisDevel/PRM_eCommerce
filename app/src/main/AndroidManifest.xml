@@ -17,6 +17,10 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
+            android:name=".activities.WalletActivity"
+            android:exported="false" />
+        </activity>
+        <activity
             android:name=".activities.PaymentResultActivity"
             android:exported="true"
             android:launchMode="singleTask">
@@ -116,6 +120,7 @@
             android:name=".activities.UserDetailsActivity"
             android:screenOrientation="portrait"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Admin.Theme.ECom" />
 
         <meta-data
