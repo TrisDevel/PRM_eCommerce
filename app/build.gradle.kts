@@ -73,4 +73,5 @@ dependencies {
     implementation ("com.facebook.shimmer:shimmer:0.5.0")
     //Lottie Animation
     implementation ("com.airbnb.android:lottie:6.3.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

@@ -1,6 +1,5 @@
 package com.example.newEcom.activities;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
@@ -19,70 +18,56 @@ import android.widget.Toast;
 
 import com.example.newEcom.R;
 import com.example.newEcom.model.OrderItemModel;
+import com.example.newEcom.model.OrderModel;
 import com.example.newEcom.model.PaymentMethod;
-import com.example.newEcom.utils.EmailSender;
 import com.example.newEcom.utils.FirebaseUtil;
 import com.example.newEcom.utils.MoMoPayment;
 import com.example.newEcom.utils.ZaloPayment;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import cn.pedant.SweetAlert.SweetAlertDialog;
 
 public class CheckoutActivity extends AppCompatActivity {
     private static final String TAG = "CheckoutActivity";
-    private PaymentMethod paymentMethod;
-    private static final int MOMO_REQUEST_CODE = 1001;
 
-    TextView subtotalTextView, deliveryTextView, totalTextView, stockErrorTextView;
+    // UI Components
+    TextView subtotalTextView, deliveryTextView, totalTextView;
     Button checkoutBtn;
     ImageView backBtn;
-
-    SweetAlertDialog dialog;
-
-    int subTotal, count = 0;
-    boolean adequateStock = true;
-
     EditText nameEditText, emailEditText, phoneEditText, addressEditText, commentEditText;
+
+    // Progress Dialog
+    SweetAlertDialog progressDialog;
+
+    // Order Data
+    int subTotal;
+    int totalAmount;
+    int cartItemCount = 0;
     String name, email, phone, address, comment;
-
-    int prevOrderId = 0;
-    int countOfOrderedItems = 0;
-    int priceOfOrders = 0;
-
-    // Lists (không dùng trick with final array)
-    List<String> productDocId;
-    List<Integer> oldStock;
-    List<Integer> quan;
-    List<String> lessStock;
-
-    List<String> cartDocument;
-    List<String> productName;
-    List<Integer> productPrice;
-    List<Integer> productQuantity;
+    int nextOrderId = 0;
+    PaymentMethod selectedPaymentMethod;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_checkout);
 
+        initializeViews();
+        setupPriceDisplay();
+        setupClickListeners();
+    }
+
+    /**
+     * ✅ KHỞI TẠO VIEWS
+     */
+    private void initializeViews() {
         subtotalTextView = findViewById(R.id.subtotalTextView);
         deliveryTextView = findViewById(R.id.deliveryTextView);
         totalTextView = findViewById(R.id.totalTextView);
-        stockErrorTextView = findViewById(R.id.stockErrorTextView);
         checkoutBtn = findViewById(R.id.checkoutBtn);
         backBtn = findViewById(R.id.backBtn);
 
@@ -92,39 +77,91 @@ public class CheckoutActivity extends AppCompatActivity {
         addressEditText = findViewById(R.id.addressEditText);
         commentEditText = findViewById(R.id.commentEditText);
 
-        subTotal = getIntent().getIntExtra("price", 10000);
+        // Setup progress dialog
+        progressDialog = new SweetAlertDialog(this, SweetAlertDialog.PROGRESS_TYPE);
+        progressDialog.getProgressHelper().setBarColor(Color.parseColor("#A5DC86"));
+        progressDialog.setTitleText("Loading...");
+        progressDialog.setCancelable(false);
+    }
+
+    /**
+     * ✅ HIỂN THỊ GIÁ TIỀN
+     */
+    private void setupPriceDisplay() {
+        subTotal = getIntent().getIntExtra("price" , 0);
+        cartItemCount = getIntent().getIntExtra("itemCount", 0);
+
         subtotalTextView.setText("₹ " + subTotal);
+
         if (subTotal >= 5000) {
             deliveryTextView.setText("₹ 0");
-            totalTextView.setText("₹ " + subTotal);
+            totalAmount = subTotal;
         } else {
             deliveryTextView.setText("₹ 500");
-            totalTextView.setText("₹ " + (subTotal + 500));
+            totalAmount = subTotal + 500;
         }
 
-        dialog = new SweetAlertDialog(this, SweetAlertDialog.PROGRESS_TYPE);
-        dialog.getProgressHelper().setBarColor(Color.parseColor("#A5DC86"));
-        dialog.setTitleText("Loading...");
-        dialog.setCancelable(false);
+        totalTextView.setText("₹ " + totalAmount);
+    }
 
+    /**
+     * ✅ SETUP CLICK LISTENERS
+     */
+    private void setupClickListeners() {
         checkoutBtn.setOnClickListener(v -> {
-            showPaymentMethodDialog();
+            if (validateInputs()) {
+                showPaymentMethodDialog();
+            }
         });
 
         backBtn.setOnClickListener(v -> onBackPressed());
     }
 
     /**
-     * Bắt đầu quy trình xử lý đơn hàng
-     * - validate
-     * - lấy details (prevOrderId, countOfOrderedItems, priceOfOrders)
-     * - lấy cart items, lưu order items vào collection "orders"
-     * - kiểm tra stock cho từng sản phẩm (song song nhưng đếm completed)
-     * - nếu đủ: update details + update stock + xóa cart items (chờ tất cả task hoàn tất)
-     * - gửi email (ở background) và show success dialog
+     * ✅ VALIDATE THÔNG TIN NGƯỜI DÙNG
+     */
+    private boolean validateInputs() {
+        name = nameEditText.getText().toString().trim();
+        email = emailEditText.getText().toString().trim();
+        phone = phoneEditText.getText().toString().trim();
+        address = addressEditText.getText().toString().trim();
+        comment = commentEditText.getText().toString().trim();
+
+        boolean isValid = true;
+
+        if (name.isEmpty()) {
+            nameEditText.setError("Name is required");
+            isValid = false;
+        }
+
+        if (email.isEmpty()) {
+            emailEditText.setError("Email is required");
+            isValid = false;
+        } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            emailEditText.setError("Email is not valid");
+            isValid = false;
+        }
+
+        if (phone.isEmpty()) {
+            phoneEditText.setError("Phone Number is required");
+            isValid = false;
+        } else if (phone.length() != 10) {
+            phoneEditText.setError("Phone number must be 10 digits");
+            isValid = false;
+        }
+
+        if (address.isEmpty()) {
+            addressEditText.setError("Address is required");
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    /**
+     * ✅ HIỂN THỊ DIALOG CHỌN PHƯƠNG THỨC THANH TOÁN
      */
     private void showPaymentMethodDialog() {
-        // Hiển thị dialog chọn phương thức thanh toán
         Dialog dialog = new Dialog(this);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setContentView(R.layout.dialog_payment_method);
@@ -133,314 +170,117 @@ public class CheckoutActivity extends AppCompatActivity {
         CardView cardMoMo = dialog.findViewById(R.id.cardMoMo);
         CardView cardZaloPay = dialog.findViewById(R.id.cardZaloPay);
 
-        // MoMo
+        // MoMo Payment
         cardMoMo.setOnClickListener(v -> {
-            paymentMethod = PaymentMethod.MOMO;
+            selectedPaymentMethod = PaymentMethod.MOMO;
             dialog.dismiss();
-            
-            // ✅ SỬ DỤNG LẠI processOrder() với callback
-            processOrder(() -> {
-                // Callback sau khi đã lấy prevOrderId và tạo order items
-                processOrderWithMoMo();
-            });
+            processCheckout();
         });
 
-        // ZaloPay
+        // ZaloPay Payment
         cardZaloPay.setOnClickListener(v -> {
-            paymentMethod = PaymentMethod.ZALOPAY;
+            selectedPaymentMethod = PaymentMethod.ZALOPAY;
             dialog.dismiss();
-            processOrder(() -> {
-                // Callback sau khi đã lấy prevOrderId và tạo order items
-                processOrderWithZaloPay();
-            });
+            processCheckout();
         });
 
         dialog.show();
     }
 
     /**
-     * ✅ XỬ LÝ THANH TOÁN MOMO (đã có prevOrderId từ processOrder)
+     * ✅ XỬ LÝ CHECKOUT
+     * 1. Lấy nextOrderId từ Firebase
+     * 2. Tạo Order tổng
+     * 3. Gọi payment gateway
      */
-    private void processOrderWithZaloPay(){
-        int totalAmount = subTotal >= 5000 ? subTotal : subTotal + 500;
+    private void processCheckout() {
+        showProgressDialog("Creating order...");
 
-        ZaloPayment.createPayment(this , prevOrderId + 1, totalAmount,
-                "Thanh toán đơn hàng #" + (prevOrderId + 1),
-                new ZaloPayment.PaymentCallback() {
-                    @Override
-                    public void onSuccess(String transactionId, String orderId) {
-                        // Thanh toán thành công qua callback từ PaymentResultActivity
-                        Log.d(TAG, "✅ ZaloPay payment success: " + transactionId);
-                        dismissDialogSafely();
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        dismissDialogSafely();
-                        Log.e(TAG, "❌ ZaloPay payment error: " + error);
-                        showErrorDialog("Payment failed: " + error);
-                    }
-
-                    @Override
-                    public void onPaymentUrlReady(String payUrl) {
-                        dismissDialogSafely();
-                        Log.d(TAG, "🌐 Opening ZaloPay payment URL");
-                        Toast.makeText(CheckoutActivity.this,
-                                "Đang mở trang thanh toán ZaloPay...",
-                                Toast.LENGTH_SHORT).show();
-                    }
-                }
-        );
-    }
-    private void processOrderWithMoMo() {
-        int totalAmount = subTotal >= 5000 ? subTotal : subTotal + 500;
-        
-        Log.d(TAG, "🟣 Starting MoMo payment with orderId: " + (prevOrderId + 1));
-
-        MoMoPayment.createPayment(
-                this,
-                prevOrderId + 1,  // ✅ Đã có orderId từ processOrder()
-                totalAmount,
-                "Thanh toán đơn hàng #" + (prevOrderId + 1),
-                new MoMoPayment.PaymentCallback() {
-                    @Override
-                    public void onSuccess(String transactionId, String orderId) {
-                        // Thanh toán thành công qua callback từ PaymentResultActivity
-                        Log.d(TAG, "✅ MoMo payment success: " + transactionId);
-                        dismissDialogSafely();
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        dismissDialogSafely();
-                        Log.e(TAG, "❌ MoMo payment error: " + error);
-                        showErrorDialog("Payment failed: " + error);
-                    }
-
-                    @Override
-                    public void onPaymentUrlReady(String payUrl) {
-                        dismissDialogSafely();
-                        Log.d(TAG, "🌐 Opening MoMo payment URL");
-                        Toast.makeText(CheckoutActivity.this, 
-                            "Đang mở trang thanh toán MoMo...", 
-                            Toast.LENGTH_SHORT).show();
-                    }
-                }
-        );
-    }
-    
-    /**
-     * Bắt đầu quy trình xử lý đơn hàng (COD payment - không có callback)
-     */
-    private void processOrder() {
-        processOrder(null); // Gọi overload method với callback = null
-    }
-    
-    /**
-     * Bắt đầu quy trình xử lý đơn hàng
-     * - validate
-     * - lấy details (prevOrderId, countOfOrderedItems, priceOfOrders)
-     * - lấy cart items, lưu order items vào collection "orders"
-     * - kiểm tra stock cho từng sản phẩm (song song nhưng đếm completed)
-     * - nếu đủ: update details + update stock + xóa cart items (chờ tất cả task hoàn tất)
-     * - gửi email (ở background) và show success dialog
-     * 
-     * @param onOrderCreated Callback được gọi sau khi tạo xong order items (có prevOrderId).
-     *                       Nếu null, sẽ tiếp tục check stock và update Firebase (COD payment).
-     *                       Nếu không null, gọi callback và return (MoMo/ZaloPay payment).
-     */
-    private void processOrder(Runnable onOrderCreated) {
-        if (!validate()) return;
-
-        // đọc thông tin người dùng
-        name = nameEditText.getText().toString().trim();
-        email = emailEditText.getText().toString().trim();
-        phone = phoneEditText.getText().toString().trim();
-        address = addressEditText.getText().toString().trim();
-        comment = commentEditText.getText().toString().trim();
-
-        // khởi tạo lists
-        productDocId = new ArrayList<>();
-        oldStock = new ArrayList<>();
-        quan = new ArrayList<>();
-        lessStock = new ArrayList<>();
-
-        cartDocument = new ArrayList<>();
-        productName = new ArrayList<>();
-        productPrice = new ArrayList<>();
-        productQuantity = new ArrayList<>();
-
-        // show loading
-        if (!isFinishing() && !isDestroyed()) dialog.show();
-
-        // 1) lấy details trước
-        FirebaseUtil.getDetails().get().addOnCompleteListener(taskDetails -> {
-            if (taskDetails.isSuccessful() && taskDetails.getResult() != null) {
-                DocumentSnapshot doc = taskDetails.getResult();
+        // Lấy nextOrderId từ Firebase
+        FirebaseUtil.getDetails().get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                DocumentSnapshot doc = task.getResult();
                 Long lastOrderIdL = doc.getLong("lastOrderId");
-                Long countItemsL = doc.getLong("countOfOrderedItems");
-                Long priceOrdersL = doc.getLong("priceOfOrders");
+                int prevOrderId = lastOrderIdL != null ? lastOrderIdL.intValue() : 0;
+                nextOrderId = prevOrderId + 1;
 
-                prevOrderId = lastOrderIdL != null ? lastOrderIdL.intValue() : 0;
-                countOfOrderedItems = countItemsL != null ? countItemsL.intValue() : 0;
-                priceOfOrders = priceOrdersL != null ? priceOrdersL.intValue() : 0;
+                Log.d(TAG, "✅ Got nextOrderId: " + nextOrderId);
 
-                // 2) lấy cart items
-                FirebaseUtil.getCartItems().get().addOnCompleteListener(taskCart -> {
-                    if (taskCart.isSuccessful() && taskCart.getResult() != null) {
-                        QuerySnapshot cartSnapshot = taskCart.getResult();
-                        if (cartSnapshot.isEmpty()) {
-                            // giỏ hàng trống
-                            dismissDialogSafely();
-                            showErrorDialog("Your cart is empty.");
-                            return;
-                        }
-
-                        count = 0;
-                        // sẽ dùng atomic để đếm các product-check hoàn tất
-                        AtomicInteger completedChecks = new AtomicInteger(0);
-                        int totlIatems = cartSnapshot.size();
-                        adequateStock = true;
-
-                        // Lưu tạm thông tin cart items để xử lý
-                        List<CartItemInfo> cartItems = new ArrayList<>();
-
-                        for (QueryDocumentSnapshot document : cartSnapshot) {
-                            count++;
-                            cartDocument.add(document.getId());
-
-                            String prodName = document.getString("name");
-                            productName.add(prodName != null ? prodName : "Unknown");
-
-                            Long priceL = document.getLong("price");
-                            int price = priceL != null ? priceL.intValue() : 0;
-                            productPrice.add(price);
-
-                            Long qtyL = document.getLong("quantity");
-                            int quantity = qtyL != null ? qtyL.intValue() : 0;
-                            productQuantity.add(quantity);
-
-                            count++; // Not necessary but original code increments count per item; keep consistent if needed
-                            // tạo OrderItemModel và lưu vào Firestore orders collection
-                            Long productIdL = document.getLong("productId");
-                            int productId = productIdL != null ? productIdL.intValue() : 0;
-
-                            OrderItemModel item = new OrderItemModel(prevOrderId + 1,
-                                    productId,
-                                    document.getString("name"),
-                                    document.getString("image"),
-                                    price,
-                                    quantity,
-                                    Timestamp.now(),
-                                    name,
-                                    email,
-                                    phone,
-                                    address,
-                                    comment,
-                                    "Pending");
-                            
-                            // ✅ Set payment method mặc định (sẽ được update sau khi thanh toán)
-                            item.setPaymentMethod(paymentMethod != null ? paymentMethod.name() : "PENDING");
-                            item.setTransactionId(null); // Chưa có transaction
-
-                            FirebaseFirestore.getInstance()
-                                    .collection("orders")
-                                    .document(FirebaseAuth.getInstance().getUid())
-                                    .collection("items")
-                                    .add(item)
-                                    .addOnFailureListener(e -> Log.e(TAG, "Failed to add order item: " + e.getMessage()));
-
-                            // Lưu thông tin tạm để check stock
-                            cartItems.add(new CartItemInfo(productId, document.getString("name"), quantity));
-                        }
-
-                        // nếu không có cart items thì thoát
-                        if (cartItems.isEmpty()) {
-                            dismissDialogSafely();
-                            showErrorDialog("No items in cart.");
-                            return;
-                        }
-
-                        // ✅ NẾU CÓ CALLBACK (thanh toán MoMo/ZaloPay) → GỌI CALLBACK VÀ RETURN
-                        if (onOrderCreated != null) {
-                            dismissDialogSafely();
-                            Log.d(TAG, "✅ Order items created with orderId: " + (prevOrderId + 1) + ", calling callback");
-                            onOrderCreated.run(); // → processOrderWithMoMo() sẽ được gọi
-                            return; // Không check stock ở đây, sẽ check sau khi thanh toán
-                        }
-
-                        // 3) kiểm tra stock cho từng cart item (chỉ cho COD payment)
-                        for (CartItemInfo ci : cartItems) {
-                            // Nếu productId = 0 (không hợp lệ), coi là lỗi
-                            if (ci.productId == 0) {
-                                adequateStock = false;
-                                lessStock.add(ci.name != null ? ci.name : "Unknown");
-                                oldStock.add(0);
-                                quan.add(ci.quantity);
-                                productDocId.add(""); // placeholder
-                                int done = completedChecks.incrementAndGet();
-                                if (done == cartItems.size()) {
-                                    onAllProductChecksCompleted();
-                                }
-                                continue;
-                            }
-
-                            FirebaseUtil.getProducts()
-                                    .whereEqualTo("productId", ci.productId)
-                                    .get()
-                                    .addOnCompleteListener(taskProd -> {
-                                        if (taskProd.isSuccessful() && taskProd.getResult() != null && !taskProd.getResult().isEmpty()) {
-                                            DocumentSnapshot prodDoc = taskProd.getResult().getDocuments().get(0);
-                                            String docId = prodDoc.getId();
-                                            Long stockL = prodDoc.getLong("stock");
-                                            int stock = stockL != null ? stockL.intValue() : 0;
-
-                                            productDocId.add(docId);
-                                            oldStock.add(stock);
-                                            quan.add(ci.quantity);
-
-                                            if (stock < ci.quantity) {
-                                                adequateStock = false;
-                                                lessStock.add(ci.name != null ? ci.name : "Unknown");
-                                            }
-                                        } else {
-                                            // product not found or error
-                                            Log.e(TAG, "Product lookup failed for productId=" + ci.productId);
-                                            adequateStock = false;
-                                            lessStock.add(ci.name != null ? ci.name : "Unknown");
-                                            productDocId.add(""); // placeholder
-                                            oldStock.add(0);
-                                            quan.add(ci.quantity);
-                                        }
-
-                                        int done = completedChecks.incrementAndGet();
-                                        if (done == cartItems.size()) {
-                                            onAllProductChecksCompleted();
-                                        }
-                                    });
-                        }
-
-                    } else {
-                        // Lỗi lấy cart
-                        dismissDialogSafely();
-                        showErrorDialog("Something went wrong retrieving cart items.");
-                    }
-                });
+                // Tạo Order tổng
+                createOrderSummary();
 
             } else {
-                // Lỗi lấy details
-                dismissDialogSafely();
-                showErrorDialog("Something went wrong retrieving app details.");
+                dismissProgressDialog();
+                showErrorDialog("Failed to retrieve order information");
+                Log.e(TAG, "❌ Failed to get lastOrderId from Firebase");
             }
         });
     }
 
-    private void onAllProductChecksCompleted() {
-        // tất cả product đã được check
-        dismissDialogSafely();
+    /**
+     * ✅ TẠO ORDER TỔNG + ORDER ITEMS
+     * Lưu tại: orders/{userId}/ordersList/{orderId}/
+     * Items tại: orders/{userId}/ordersList/{orderId}/items/{autoId}
+     */
+    private void createOrderSummary() {
+        String userId = FirebaseAuth.getInstance().getUid();
+        if (userId == null) {
+            dismissProgressDialog();
+            showErrorDialog("User not authenticated");
+            return;
+        }
 
+        // Tạo OrderModel
+        OrderModel order = new OrderModel(
+            nextOrderId,
+            "Pending",                              // status
+            null,                                   // transactionId (chưa có)
+            selectedPaymentMethod.name(),           // paymentMethod
+            totalAmount,                            // totalAmount
+            cartItemCount,                          // itemCount
+            Timestamp.now(),                        // timestamp
+            name,
+            email,
+            phone,
+            address,
+            comment
+        );
+
+        // Lưu order tổng vào Firestore
+        FirebaseFirestore.getInstance()
+            .collection("orders")
+            .document(userId)
+            .collection("ordersList")
+            .document(String.valueOf(nextOrderId))
+            .set(order)
+            .addOnSuccessListener(aVoid -> {
+                Log.d(TAG, "✅ Order summary created successfully");
+                Log.d(TAG, "   - OrderId: " + nextOrderId);
+                Log.d(TAG, "   - Status: Pending");
+                Log.d(TAG, "   - Payment: " + selectedPaymentMethod.name());
+                Log.d(TAG, "   - Total: " + totalAmount);
+
+                // Tạo order items (subcollection)
+                createOrderItems(userId);
+
+            })
+            .addOnFailureListener(e -> {
+                dismissProgressDialog();
+                showErrorDialog("Failed to create order: " + e.getMessage());
+                Log.e(TAG, "❌ Failed to create order: " + e.getMessage());
+            });
+    }
+
+    /**
+     * ✅ TẠO ORDER ITEMS (SUBCOLLECTION)
+     * Lấy cart items và lưu vào: orders/{userId}/ordersList/{orderId}/items/
+     * Note: Stock sẽ được trừ SAU KHI thanh toán thành công (trong PaymentResultActivity)
+     */
+    private void createOrderItems(String userId) {
         FirebaseUtil.getCartItems().get().addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null) {
+                int itemCount = 0;
+
                 for (QueryDocumentSnapshot document : task.getResult()) {
                     Long productIdL = document.getLong("productId");
                     int productId = productIdL != null ? productIdL.intValue() : 0;
@@ -451,165 +291,249 @@ public class CheckoutActivity extends AppCompatActivity {
                     Long qtyL = document.getLong("quantity");
                     int quantity = qtyL != null ? qtyL.intValue() : 0;
 
+                    // Tạo OrderItemModel
                     OrderItemModel item = new OrderItemModel(
-                            prevOrderId + 1,
-                            productId,
-                            document.getString("name"),
-                            document.getString("image"),
-                            price,
-                            quantity,
-                            Timestamp.now(),
-                            name,
-                            email,
-                            phone,
-                            address,
-                            comment,
-                            "Pending"
+                        nextOrderId,
+                        productId,
+                        document.getString("name"),
+                        document.getString("image"),
+                        price,
+                        quantity,
+                        Timestamp.now(),
+                        name,
+                        email,
+                        phone,
+                        address,
+                        comment
                     );
 
+                    item.setPaymentMethod(selectedPaymentMethod.name());
+                    item.setTransactionId(null);
+
+                    // Lưu vào subcollection items
                     FirebaseFirestore.getInstance()
-                            .collection("orders")
-                            .document(FirebaseAuth.getInstance().getUid())
-                            .collection("items")
-                            .add(item)
-                            .addOnSuccessListener(docRef ->
-                                    Log.d(TAG, "✅ Order item saved: " + docRef.getId())
-                            )
-                            .addOnFailureListener(e ->
-                                    Log.e(TAG, "❌ Failed to save order item: " + e.getMessage())
-                            );
+                        .collection("orders")
+                        .document(userId)
+                        .collection("ordersList")
+                        .document(String.valueOf(nextOrderId))
+                        .collection("items")  // ✅ Subcollection
+                        .add(item)
+                        .addOnSuccessListener(docRef -> 
+                            Log.d(TAG, "✅ Order item added: " + docRef.getId())
+                        )
+                        .addOnFailureListener(e -> 
+                            Log.e(TAG, "❌ Failed to add order item: " + e.getMessage())
+                        );
+
+                    itemCount++;
                 }
+
+                Log.d(TAG, "✅ Created " + itemCount + " order items");
+
+                // Cập nhật lastOrderId
+                updateLastOrderId();
+
+            } else {
+                dismissProgressDialog();
+                showErrorDialog("Failed to retrieve cart items");
+                Log.e(TAG, "❌ Failed to get cart items");
             }
         });
-
-        // Nếu đủ stock -> thực hiện cập nhật lên Firebase
-        changeToFirebase();
     }
 
-    private void changeToFirebase() {
-        // Chuẩn bị dữ liệu cập nhật chi tiết đơn hàng
-        Map<String, Object> detailsUpdate = new HashMap<>();
-        detailsUpdate.put("lastOrderId", prevOrderId + 1);
-        detailsUpdate.put("countOfOrderedItems", countOfOrderedItems + count);
-        detailsUpdate.put("priceOfOrders", priceOfOrders + subTotal);
-
-        List<Task<?>> tasks = new ArrayList<>();
-
-        // ✅ Cập nhật hoặc tạo mới document "dashboard/details"
-        Task<Void> detailsTask = FirebaseUtil.getDetails()
-                .get()
-                .continueWithTask(task -> {
-                    if (task.isSuccessful() && task.getResult().exists()) {
-                        // Nếu document đã tồn tại → update
-                        return FirebaseUtil.getDetails().update(detailsUpdate);
-                    } else {
-                        // Nếu chưa có → tạo mới
-                        return FirebaseUtil.getDetails().set(detailsUpdate);
-                    }
-                })
-                .addOnFailureListener(e -> Log.e(TAG, "❌ Lỗi khi cập nhật hoặc tạo details: " + e.getMessage()));
-        tasks.add(detailsTask);
-
-        // ✅ Cập nhật tồn kho sản phẩm
-        for (int i = 0; i < productDocId.size(); i++) {
-            String prodDocId = productDocId.get(i);
-            if (prodDocId == null || prodDocId.isEmpty()) continue;
-
-            int newStock = oldStock.get(i) - quan.get(i);
-            Task<Void> updateStockTask = FirebaseUtil.getProducts()
-                    .document(prodDocId)
-                    .update("stock", newStock)
-                    .addOnFailureListener(e -> Log.e(TAG, "❌ Lỗi khi cập nhật tồn kho sản phẩm: " + e.getMessage()));
-            tasks.add(updateStockTask);
-        }
-
-        // ✅ Xóa sản phẩm trong giỏ hàng
-        for (String docId : cartDocument) {
-            if (docId == null || docId.isEmpty()) continue;
-
-            Task<Void> deleteCartTask = FirebaseUtil.getCartItems()
-                    .document(docId)
-                    .delete()
-                    .addOnFailureListener(e -> Log.e(TAG, "❌ Lỗi khi xóa sản phẩm trong giỏ hàng: " + e.getMessage()));
-            tasks.add(deleteCartTask);
-        }
-
-        // ✅ Chờ tất cả tác vụ hoàn tất
-//        Tasks.whenAll(tasks)
-//                .addOnCompleteListener(allTasks -> {
-//                    // Gửi email xác nhận
-//                    sendOrderConfirmationEmail();
-//
-//                    // Hiển thị thông báo thành công
-//                    runOnUiThread(() -> {
-//                        if (!isFinishing() && !isDestroyed()) {
-//                            new SweetAlertDialog(CheckoutActivity.this, SweetAlertDialog.SUCCESS_TYPE)
-//                                    .setTitleText("Order placed Successfully!")
-//                                    .setContentText("You will shortly receive an email confirming the order details.")
-//                                    .setConfirmClickListener(dialog -> {
-//                                        Intent intent = new Intent(CheckoutActivity.this, MainActivity.class);
-//                                        intent.putExtra("orderPlaced", true);
-//                                        startActivity(intent);
-//                                        finish();
-//                                    })
-//                                    .show();
-//                        }
-//                    });
-//                })
-//                .addOnFailureListener(e -> {
-//                    Log.e(TAG, "❌ Một số tác vụ thất bại: " + e.getMessage());
-//                    dismissDialogSafely();
-//                    showErrorDialog("Something went wrong while finalizing your order. Please try again.");
-//                });
+    /**
+     * ✅ CẬP NHẬT LAST ORDER ID
+     */
+    private void updateLastOrderId() {
+        FirebaseUtil.getDetails()
+            .update("lastOrderId", nextOrderId)
+            .addOnSuccessListener(aVoid -> {
+                Log.d(TAG, "✅ Updated lastOrderId to: " + nextOrderId);
+                // Gọi payment gateway
+                processPayment();
+            })
+            .addOnFailureListener(e -> {
+                dismissProgressDialog();
+                showErrorDialog("Failed to update order ID");
+                Log.e(TAG, "❌ Failed to update lastOrderId: " + e.getMessage());
+            });
     }
 
+    /**
+     * ✅ XỬ LÝ THANH TOÁN
+     */
+    private void processPayment() {
+        dismissProgressDialog();
 
-    // ----------------------------
-// Hàm con để gửi email xác nhận
-// ----------------------------
-    private void sendOrderConfirmationEmail() {
-        String subject = "Your Order is successfully placed with ShopEase!";
-        StringBuilder body = new StringBuilder();
-
-        body.append("Dear ").append(name).append(",\n\n")
-                .append("Thank you for placing your order with ShopEase. We are excited to inform you that your order has been successfully placed.\n\n")
-                .append("Order Details:\n")
-                .append("------------------------------------------------------------\n")
-                .append(String.format("%-40s %-10s %-10s\n", "Product Name", "Quantity", "Price"))
-                .append("------------------------------------------------------------\n");
-
-        for (int i = 0; i < productName.size(); i++) {
-            String pName = productName.get(i);
-            int pQty = i < productQuantity.size() ? productQuantity.get(i) : 0;
-            int pPrice = i < productPrice.size() ? productPrice.get(i) : 0;
-            body.append(String.format("%-40s %-10d ₹%-10d\n", pName, pQty, pPrice));
+        if (selectedPaymentMethod == PaymentMethod.MOMO) {
+            processMoMoPayment();
+        } else if (selectedPaymentMethod == PaymentMethod.ZALOPAY) {
+            processZaloPayPayment();
         }
+    }
 
-        body.append("------------------------------------------------------------\n")
-                .append(String.format("%-60s ₹%-10d\n", "Total:", subTotal))
-                .append("------------------------------------------------------------\n\n")
-                .append("Thank you for choosing our service. If you have any questions or concerns, feel free to contact our customer support.\n\n")
-                .append("Best Regards,\n")
-                .append("ShopEase Team");
+    /**
+     * ✅ XỬ LÝ THANH TOÁN MOMO
+     */
+    private void processMoMoPayment() {
+        Log.d(TAG, "🟣 Starting MoMo payment with orderId: " + nextOrderId);
 
-        // Gửi email trong luồng riêng
-        new Thread(() -> {
-            try {
-                EmailSender emailSender = new EmailSender(subject, body.toString(), email);
-                emailSender.sendEmail();
-                Log.i(TAG, "✅ Email xác nhận đã được gửi thành công.");
-            } catch (Exception e) {
-                Log.e(TAG, "❌ Gửi email thất bại: " + e.getMessage());
+        MoMoPayment.createPayment(
+            this,
+            nextOrderId,
+            totalAmount,
+            "Thanh toán đơn hàng #" + nextOrderId,
+            new MoMoPayment.PaymentCallback() {
+                @Override
+                public void onSuccess(String transactionId, String orderId) {
+                    Log.d(TAG, "✅ MoMo payment success: " + transactionId);
+                }
+
+                @Override
+                public void onError(String error) {
+                    Log.e(TAG, "❌ MoMo payment error: " + error);
+                    // ❌ XÓA ORDER NẾU PAYMENT FAILED
+                    deleteOrderOnPaymentError();
+                    showErrorDialog("MoMo Payment failed: " + error);
+                }
+
+                @Override
+                public void onPaymentUrlReady(String payUrl) {
+                    Log.d(TAG, "🌐 Opening MoMo payment URL");
+                    Toast.makeText(CheckoutActivity.this,
+                        "Đang mở trang thanh toán MoMo...",
+                        Toast.LENGTH_SHORT).show();
+                }
             }
-        }).start();
+        );
     }
 
+    /**
+     * ✅ XỬ LÝ THANH TOÁN ZALOPAY
+     */
+    private void processZaloPayPayment() {
+        Log.d(TAG, "🔵 Starting ZaloPay payment with orderId: " + nextOrderId);
 
-    private void dismissDialogSafely() {
+        ZaloPayment.createPayment(
+            this,
+            nextOrderId,
+            totalAmount,
+            "Thanh toán đơn hàng #" + nextOrderId,
+            new ZaloPayment.PaymentCallback() {
+                @Override
+                public void onSuccess(String transactionId, String orderId) {
+                    Log.d(TAG, "✅ ZaloPay payment success: " + transactionId);
+                }
+
+                @Override
+                public void onError(String error) {
+                    Log.e(TAG, "❌ ZaloPay payment error: " + error);
+                    // ❌ XÓA ORDER NẾU PAYMENT FAILED
+                    deleteOrderOnPaymentError();
+                    showErrorDialog("ZaloPay Payment failed: " + error);
+                }
+
+                @Override
+                public void onPaymentUrlReady(String payUrl) {
+                    Log.d(TAG, "🌐 Opening ZaloPay payment URL");
+                    Toast.makeText(CheckoutActivity.this,
+                        "Đang mở trang thanh toán ZaloPay...",
+                        Toast.LENGTH_SHORT).show();
+                }
+            }
+        );
+    }
+
+    /**
+     * ❌ XÓA ORDER KHI PAYMENT ERROR
+     * Xóa order document và tất cả items trong subcollection
+     */
+    private void deleteOrderOnPaymentError() {
+        String userId = FirebaseAuth.getInstance().getUid();
+        if (userId == null) {
+            Log.e(TAG, "Cannot delete order: User not authenticated");
+            return;
+        }
+
+        Log.d(TAG, "🗑️ Deleting failed order: " + nextOrderId);
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        // Xóa tất cả items trong subcollection trước
+        db.collection("orders")
+            .document(userId)
+            .collection("ordersList")
+            .document(String.valueOf(nextOrderId))
+            .collection("items")
+            .get()
+            .addOnSuccessListener(querySnapshot -> {
+                // Xóa từng item
+                for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                    doc.getReference().delete()
+                        .addOnSuccessListener(aVoid -> 
+                            Log.d(TAG, "✅ Deleted order item: " + doc.getId())
+                        )
+                        .addOnFailureListener(e -> 
+                            Log.e(TAG, "❌ Failed to delete item: " + e.getMessage())
+                        );
+                }
+
+                // Sau khi xóa items, xóa order document
+                db.collection("orders")
+                    .document(userId)
+                    .collection("ordersList")
+                    .document(String.valueOf(nextOrderId))
+                    .delete()
+                    .addOnSuccessListener(aVoid -> {
+                        Log.d(TAG, "✅ Deleted order document: " + nextOrderId);
+                        
+                        // Rollback lastOrderId
+                        rollbackLastOrderId();
+                    })
+                    .addOnFailureListener(e -> 
+                        Log.e(TAG, "❌ Failed to delete order: " + e.getMessage())
+                    );
+            })
+            .addOnFailureListener(e -> 
+                Log.e(TAG, "❌ Failed to get order items for deletion: " + e.getMessage())
+            );
+    }
+
+    /**
+     * ⏮️ ROLLBACK LAST ORDER ID
+     */
+    private void rollbackLastOrderId() {
+        FirebaseUtil.getDetails()
+            .update("lastOrderId", nextOrderId - 1)
+            .addOnSuccessListener(aVoid -> 
+                Log.d(TAG, "✅ Rolled back lastOrderId to: " + (nextOrderId - 1))
+            )
+            .addOnFailureListener(e -> 
+                Log.e(TAG, "❌ Failed to rollback lastOrderId: " + e.getMessage())
+            );
+    }
+
+    /**
+     * ✅ HIỂN THỊ PROGRESS DIALOG
+     */
+    private void showProgressDialog(String message) {
+        runOnUiThread(() -> {
+            if (!isFinishing() && !isDestroyed()) {
+                progressDialog.setTitleText(message);
+                progressDialog.show();
+            }
+        });
+    }
+
+    /**
+     * ✅ ẨN PROGRESS DIALOG
+     */
+    private void dismissProgressDialog() {
         runOnUiThread(() -> {
             try {
-                if (dialog != null && dialog.isShowing() && !isFinishing() && !isDestroyed()) {
-                    dialog.dismiss();
+                if (progressDialog != null && progressDialog.isShowing() &&
+                    !isFinishing() && !isDestroyed()) {
+                    progressDialog.dismiss();
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error dismissing dialog: " + e.getMessage());
@@ -617,64 +541,32 @@ public class CheckoutActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * ✅ HIỂN THỊ ERROR DIALOG
+     */
     private void showErrorDialog(String message) {
         runOnUiThread(() -> {
             if (!isFinishing() && !isDestroyed()) {
                 new SweetAlertDialog(CheckoutActivity.this, SweetAlertDialog.ERROR_TYPE)
-                        .setTitleText("Order Failed!")
-                        .setContentText(message)
-                        .setConfirmClickListener(sweetAlertDialog -> {
-                            Intent intent = new Intent(CheckoutActivity.this, MainActivity.class);
-                            startActivity(intent);
-                            finish();
-                        }).show();
+                    .setTitleText("Order Failed!")
+                    .setContentText(message)
+                    .setConfirmClickListener(sweetAlertDialog -> {
+                        sweetAlertDialog.dismiss();
+                    })
+                    .show();
             }
         });
-    }
-
-    private boolean validate() {
-        boolean isValid = true;
-        if (nameEditText.getText().toString().trim().length() == 0) {
-            nameEditText.setError("Name is required");
-            isValid = false;
-        }
-        if (emailEditText.getText().toString().trim().length() == 0) {
-            emailEditText.setError("Email is required");
-            isValid = false;
-        } else if (!Patterns.EMAIL_ADDRESS.matcher(emailEditText.getText().toString().trim()).matches()) {
-            emailEditText.setError("Email is not valid");
-            isValid = false;
-        }
-        if (phoneEditText.getText().toString().trim().length() == 0) {
-            phoneEditText.setError("Phone Number is required");
-            isValid = false;
-        } else if (phoneEditText.getText().toString().trim().length() != 10) {
-            phoneEditText.setError("Phone number is not valid");
-            isValid = false;
-        }
-        if (addressEditText.getText().toString().trim().length() == 0) {
-            addressEditText.setError("Address is required");
-            isValid = false;
-        }
-        return isValid;
-    }
-
-    // Class helper để lưu tạm thông tin cart item
-    private static class CartItemInfo {
-        int productId;
-        String name;
-        int quantity;
-
-        CartItemInfo(int productId, String name, int quantity) {
-            this.productId = productId;
-            this.name = name;
-            this.quantity = quantity;
-        }
     }
 
     @Override
     public boolean onSupportNavigateUp() {
         finish();
         return super.onSupportNavigateUp();
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        finish();
     }
 }

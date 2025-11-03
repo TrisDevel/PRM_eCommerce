@@ -20,14 +20,20 @@ import java.util.Scanner;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
 public class ZaloPayment {
     private static final String TAG = "ZaloPayment";
     private static final String ZALOPAY_ENDPOINT = "https://sb-openapi.zalopay.vn/v2/create";
     private static final String ZALOPAY_APP_ID = "2553";
-    private static final String ZALOPAY_APP_ID_V1 = "553";
-    private static   final String ZALOPAY_KEY1 = "PcY4iZIKFCIdgZvA6ueMcMHHUbRLYjPL";
-    private static final String ZALOPAY_KEY_V1 = "9phuAOYhan4urywHTh0ndEXiV3pKHr5Q";
-    private static final String ZALOPAY_KEY2 = "kLtgPl8HHhfvMuDHPwKfgfsY4Ydm9eIz";
+    private static final String ZALOPAY_KEY1 = "PcY4iZIKFCIdgZvA6ueMcMHHUbRLYjPL";
+    private static final String ZALOPAY_KEY2 = "trMrHtvjo6myautxDUiAcYsVtaeQ8nhf"; // KEY2 for callback verification
+    private static final OkHttpClient client = new OkHttpClient();
+    private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     public interface PaymentCallback {
         void onSuccess(String transactionId, String orderId);
         void onError(String error);
@@ -44,7 +50,7 @@ public class ZaloPayment {
                 String appUser = "ZaloPayDemo";
                 long appTime = System.currentTimeMillis();
                 String description = "Android Payment - Thanh toán đơn hàng #" + appTransId;
-                String callbackUrl = "ecommerce://payment-result";
+                String callbackUrl = "ecommerce://payment-result?orderId=" + orderId + "&paymentMethod=ZALOPAY";
 
                 JSONObject embedDataObj = new JSONObject();
                 embedDataObj.put("redirecturl", callbackUrl);
@@ -60,12 +66,12 @@ public class ZaloPayment {
                 itemsArr.put(itemObj);
                 String itemStr = itemsArr.toString();
 
-                String data = ZALOPAY_APP_ID_V1 + "|" + appTransId + "|" + appUser + "|" +
+                String data = ZALOPAY_APP_ID + "|" + appTransId + "|" + appUser + "|" +
                         amount + "|" + appTime + "|" + embedDataStr + "|" + itemStr;
-                String mac = hmacSHA256(data, ZALOPAY_KEY_V1);
+                String mac = hmacSHA256(data, ZALOPAY_KEY1);
 
                 JSONObject requestBody = new JSONObject();
-                requestBody.put("app_id", Integer.parseInt(ZALOPAY_APP_ID_V1));
+                requestBody.put("app_id", Integer.parseInt(ZALOPAY_APP_ID));
                 requestBody.put("app_user", appUser);
                 requestBody.put("app_time", appTime);
                 requestBody.put("amount", amount);
@@ -73,31 +79,30 @@ public class ZaloPayment {
                 requestBody.put("bank_code", "");
                 requestBody.put("embed_data", embedDataStr);
                 requestBody.put("item", itemStr);
-                requestBody.put("callback_url", callbackUrl);
+                requestBody.put("callback_url", "https://saved-saved-honeybee.ngrok-free.app/zalo/notify");
                 requestBody.put("description", description);
                 requestBody.put("mac", mac);
 
+                RequestBody body = RequestBody.create(JSON, requestBody.toString());
+
                 URL url = new URL(ZALOPAY_ENDPOINT);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-                conn.setDoOutput(true);
+                Request request = new Request.Builder()
+                    .url(ZALOPAY_ENDPOINT)
+                    .post(body)
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Accept", "application/json")
+                    .build();
 
-                OutputStream os = conn.getOutputStream();
-                os.write(requestBody.toString().getBytes("UTF-8"));
-                os.flush();
-                os.close();
-
-                int responseCode = conn.getResponseCode();
-                if (responseCode == 200) {
-                    Scanner scanner = new Scanner(conn.getInputStream()).useDelimiter("\\A");
-                    String responseBody = scanner.hasNext() ? scanner.next() : "";
-                    JSONObject response = new JSONObject(responseBody);
-                    int returnCode = response.getInt("return_code");
-                    String returnMessage = response.getString("return_message");
+                Response response = client.newCall(request).execute();
+                
+                if (response.isSuccessful()) {  
+                    String responseBody = response.body().string();
+                    JSONObject jsonResponse = new JSONObject(responseBody);
+                    int returnCode = jsonResponse.getInt("return_code");
+                    String returnMessage = jsonResponse.getString("return_message");
 
                     if (returnCode == 1) {
-                        String orderUrl = response.getString("order_url");
+                        String orderUrl = jsonResponse.getString("order_url");
                         Log.d(TAG, "createZaloPayOrder: " + orderUrl);
                         activity.runOnUiThread(() -> {
                             callback.onPaymentUrlReady(orderUrl);
@@ -110,9 +115,12 @@ public class ZaloPayment {
                     }
                 } else {
                     activity.runOnUiThread(() -> {
-                        callback.onError("HTTP error: " + responseCode);
+                        callback.onError("HTTP error: " + response.code());
                     });
                 }
+                
+                response.close(); // ⚠️ Quan trọng: Phải close response
+                
             } catch (Exception e) {
                 activity.runOnUiThread(() -> {
                     callback.onError("Error: " + e.getMessage());
@@ -160,5 +168,37 @@ public class ZaloPayment {
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) sb.append(String.format("%02x", b));
         return sb.toString();
+    }
+
+    /**
+     * ✅ VERIFY ZALOPAY CALLBACK CHECKSUM
+     * Format: HmacSHA256(appid|apptransid|amount|status|pmcid|bankcode|discountamount, KEY2)
+     */
+    public static boolean verifyCallbackChecksum(
+            String appId, String appTransId, String amount, String status,
+            String pmcId, String bankCode, String discountAmount, String checksum
+    ) {
+        try {
+            // Build data string theo format ZaloPay
+            String data = appId + "|" + appTransId + "|" + amount + "|" + status + "|" + 
+                         pmcId + "|" + bankCode + "|" + discountAmount;
+            
+            Log.d(TAG, "Verifying checksum with data: " + data);
+            
+            // Calculate expected checksum
+            String expectedChecksum = hmacSHA256(data, ZALOPAY_KEY2);
+            
+            Log.d(TAG, "Received checksum: " + checksum);
+            Log.d(TAG, "Expected checksum: " + expectedChecksum);
+            
+            // Compare
+            boolean isValid = expectedChecksum.equals(checksum);
+            Log.d(TAG, "Checksum verification: " + (isValid ? "✅ VALID" : "❌ INVALID"));
+            
+            return isValid;
+        } catch (Exception e) {
+            Log.e(TAG, "Error verifying checksum: " + e.getMessage());
+            return false;
+        }
     }
 }
