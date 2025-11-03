@@ -17,9 +17,23 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
+            android:name=".activities.PaymentResultActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+
+                <data
+                    android:scheme="ecommerce"
+                    android:host="payment-result"/>
+            </intent-filter>
+        </activity>
+        <activity
             android:name=".activities.MainActivity"
-            android:screenOrientation="portrait"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="portrait">
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
 
@@ -33,8 +47,8 @@
         </activity>
         <activity
             android:name=".activities.SplashActivity"
-            android:screenOrientation="portrait"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -43,48 +57,63 @@
         </activity>
         <activity
             android:name=".activities.CheckoutActivity"
-            android:screenOrientation="portrait"
-            android:exported="false" />
+            android:exported="false"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".activities.SignupActivity"
-            android:screenOrientation="portrait"
-            android:exported="false" />
+            android:exported="false"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".activities.LoginActivity"
-            android:screenOrientation="portrait"
-            android:exported="false" />
+            android:exported="false"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".activities.AddProductActivity"
-            android:screenOrientation="portrait"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Admin.Theme.ECom" />
         <activity
             android:name=".activities.ModifyProductActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Admin.Theme.ECom" />
+        <activity
+            android:name=".activities.AddCategoryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Admin.Theme.ECom" />
+        <activity
+            android:name=".activities.ModifyCategoryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Admin.Theme.ECom" />
+        <activity
+            android:name=".activities.AddBannerActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Admin.Theme.ECom" />
+        <activity
+            android:name=".activities.ModifyBannerActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Admin.Theme.ECom" />
+        <activity
+            android:name=".activities.AdminActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Admin.Theme.ECom" />
+        <activity
+            android:name=".activities.UserManagementActivity"
             android:screenOrientation="portrait"
             android:exported="false"
             android:theme="@style/Admin.Theme.ECom" />
         <activity
-            android:name=".activities.AddCategoryActivity"
+            android:name=".activities.UserListActivity"
             android:screenOrientation="portrait"
             android:exported="false"
-            android:theme="@style/Admin.Theme.ECom"/>
+            android:theme="@style/Admin.Theme.ECom" />
         <activity
-            android:name=".activities.ModifyCategoryActivity"
-            android:screenOrientation="portrait"
-            android:exported="false"
-            android:theme="@style/Admin.Theme.ECom"/>
-        <activity
-            android:name=".activities.AddBannerActivity"
-            android:screenOrientation="portrait"
-            android:exported="false"
-            android:theme="@style/Admin.Theme.ECom"/>
-        <activity
-            android:name=".activities.ModifyBannerActivity"
-            android:screenOrientation="portrait"
-            android:exported="false"
-            android:theme="@style/Admin.Theme.ECom"/>
-        <activity
-            android:name=".activities.AdminActivity"
+            android:name=".activities.UserDetailsActivity"
             android:screenOrientation="portrait"
             android:exported="false"
             android:theme="@style/Admin.Theme.ECom" />
