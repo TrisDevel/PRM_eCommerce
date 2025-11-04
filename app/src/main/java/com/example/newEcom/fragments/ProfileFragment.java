@@ -19,7 +19,7 @@ import com.example.newEcom.activities.MainActivity;
 import com.example.newEcom.activities.SplashActivity;
 import com.example.newEcom.activities.WalletActivity;
 import com.example.newEcom.adapters.OrderListAdapter;
-import com.example.newEcom.model.OrderItemModel;
+import com.example.newEcom.model.OrderModel;
 import com.example.newEcom.utils.FirebaseUtil;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.firebase.auth.FirebaseAuth;
@@ -70,9 +70,9 @@ public class ProfileFragment extends Fragment {
     }
 
     private void getOrderProducts() {
-        Query query = FirebaseUtil.getOrderItems().orderBy("timestamp", Query.Direction.DESCENDING);
-        FirestoreRecyclerOptions<OrderItemModel> options = new FirestoreRecyclerOptions.Builder<OrderItemModel>()
-                .setQuery(query, OrderItemModel.class)
+        Query query = FirebaseUtil.getOrderList().orderBy("timestamp", Query.Direction.DESCENDING);
+        FirestoreRecyclerOptions<OrderModel> options = new FirestoreRecyclerOptions.Builder<OrderModel>()
+                .setQuery(query, OrderModel.class)
                 .build();
 
         orderAdapter = new OrderListAdapter(options, getActivity());

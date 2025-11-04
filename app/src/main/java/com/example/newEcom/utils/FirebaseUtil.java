@@ -42,9 +42,19 @@ public class FirebaseUtil {
         return FirebaseFirestore.getInstance().collection("wishlists").document(FirebaseAuth.getInstance().getUid()).collection("items");
     }
 
-    public static CollectionReference getOrderItems(){
-        return FirebaseFirestore.getInstance().collection("orders").document(FirebaseAuth.getInstance().getUid()).collection("items");
+    public static CollectionReference getOrderList(){
+        return FirebaseFirestore.getInstance().collection("orders").document(FirebaseAuth.getInstance().getUid()).collection("ordersList");
     }
+    public static CollectionReference getOrderItems(int orderId){
+        // orders/{uid}/ordersList/{orderId}/items
+        return FirebaseFirestore.getInstance()
+                .collection("orders")
+                .document(FirebaseAuth.getInstance().getUid())
+                .collection("ordersList")
+                .document(String.valueOf(orderId))
+                .collection("items");
+    }
+
 
     public static CollectionReference getReviews(int pid){
         return FirebaseFirestore.getInstance().collection("reviews").document(pid+"").collection("review");

@@ -87,6 +87,7 @@ public class OrderDetailsFragment extends Fragment {
         });
 
         int oid = getArguments().getInt("orderId");
+        int pidArg = getArguments().getInt("productId", -1);
 
         dialog = new SweetAlertDialog(activity, SweetAlertDialog.PROGRESS_TYPE);
         dialog.getProgressHelper().setBarColor(Color.parseColor("#A5DC86"));
@@ -95,7 +96,7 @@ public class OrderDetailsFragment extends Fragment {
 
         dialog.show();
 
-        initProduct(oid, new FirestoreCallback() {
+        initProduct(oid, pidArg, new FirestoreCallback() {
             @Override
             public void onCallback(OrderItemModel orderItem) {
                 Picasso.get().load(orderItem.getImage()).into(productImageView);
@@ -196,9 +197,14 @@ public class OrderDetailsFragment extends Fragment {
                 });
     }
 
-    private void initProduct(int orderId, FirestoreCallback callback) {
-        FirebaseUtil.getOrderItems().whereEqualTo("orderId", orderId)
-                .get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+    private void initProduct(int orderId, int productId, FirestoreCallback callback) {
+        // Fetch from orders/{uid}/ordersList/{orderId}/items, optionally filter by productId if provided
+        com.google.firebase.firestore.Query query = FirebaseUtil.getOrderItems(orderId);
+        if (productId != -1) {
+            query = query.whereEqualTo("productId", productId);
+        }
+
+        query.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                     @Override
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
                         if (task.isSuccessful()) {
