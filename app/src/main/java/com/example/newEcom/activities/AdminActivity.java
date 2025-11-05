@@ -24,6 +24,8 @@ public class AdminActivity extends AppCompatActivity {
     CardView addProductBtn, modifyProductBtn, addCategoryBtn, modifyCategoryBtn, addBannerBtn, modifyBannerBtn, userManagementBtn;
     TextView countOrders, priceOrders; // usersTextView;
 
+    CardView sendNotificationBtn;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -32,6 +34,12 @@ public class AdminActivity extends AppCompatActivity {
 
         bindViews();
         wireClicks();
+
+        sendNotificationBtn = findViewById(R.id.sendNotificationBtn);
+        if (sendNotificationBtn != null)
+            sendNotificationBtn.setOnClickListener(v -> startActivity(new Intent(this, SendNotificationActivity.class)));
+
+
         getDetails();
     }
 

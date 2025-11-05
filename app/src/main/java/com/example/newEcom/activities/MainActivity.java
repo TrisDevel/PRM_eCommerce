@@ -34,6 +34,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 import com.google.firebase.dynamiclinks.FirebaseDynamicLinks;
 import com.google.firebase.dynamiclinks.PendingDynamicLinkData;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.mancj.materialsearchbar.MaterialSearchBar;
 import com.mancj.materialsearchbar.SimpleOnSearchActionListener;
@@ -217,7 +218,69 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
+
     }
+    @Override
+    protected void onStart() {
+        super.onStart();
+        listenForNotifications();
+    }
+
+    private void listenForNotifications() {
+        FirebaseFirestore.getInstance()
+                .collection("notifications")
+                .orderBy("timestamp")
+                .addSnapshotListener((snapshots, e) -> {
+                    if (e != null || snapshots == null) return;
+
+                    snapshots.getDocumentChanges().forEach(change -> {
+                        if (change.getType() == com.google.firebase.firestore.DocumentChange.Type.ADDED) {
+                            String title = change.getDocument().getString("title");
+                            String body = change.getDocument().getString("body");
+                            showLocalNotification(title, body);
+                        }
+                    });
+                });
+    }
+
+    private void showLocalNotification(String title, String message) {
+        androidx.core.app.NotificationCompat.Builder builder =
+                new androidx.core.app.NotificationCompat.Builder(this, "memoirs_channel")
+                        .setSmallIcon(R.drawable.ic_cart)
+                        .setContentTitle(title)
+                        .setContentText(message)
+                        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
+                        .setAutoCancel(true);
+
+        androidx.core.app.NotificationManagerCompat notificationManager =
+                androidx.core.app.NotificationManagerCompat.from(this);
+
+        // Tạo channel cho Android 8+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            android.app.NotificationChannel channel = new android.app.NotificationChannel(
+                    "memoirs_channel", "Memoirs Notifications",
+                    android.app.NotificationManager.IMPORTANCE_DEFAULT
+            );
+            notificationManager.createNotificationChannel(channel);
+        }
+
+        // ✅ Kiểm tra quyền trước khi gửi thông báo
+        if (androidx.core.content.ContextCompat.checkSelfPermission(
+                this, android.Manifest.permission.POST_NOTIFICATIONS)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+
+            notificationManager.notify((int) System.currentTimeMillis(), builder.build());
+
+        } else {
+            // Nếu chưa có quyền → xin quyền
+            androidx.core.app.ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
+                    101
+            );
+        }
+    }
+
 //    @Override
 //    protected void onStart() {
 //        super.onStart();
