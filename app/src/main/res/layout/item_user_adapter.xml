@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
+    app:cardBackgroundColor="@color/white"
     app:cardCornerRadius="12dp"
     app:cardElevation="4dp">
 
@@ -18,6 +19,8 @@
             android:layout_width="60dp"
             android:layout_height="60dp"
             android:layout_marginEnd="16dp"
+            android:padding="4dp"
+            android:background="@drawable/profile_image_background"
             android:scaleType="centerCrop"
             android:src="@drawable/ic_profile" />
 
@@ -42,7 +45,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="john@example.com"
-                android:textColor="@color/grey"
+                android:textColor="#757575"
                 android:textSize="14sp" />
 
             <LinearLayout
@@ -87,7 +90,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Orders: 5"
-                    android:textColor="@color/grey"
+                    android:textColor="#616161"
                     android:textSize="12sp" />
 
                 <TextView
@@ -96,19 +99,12 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
                     android:text="Spent: $250"
-                    android:textColor="@color/grey"
+                    android:textColor="#616161"
                     android:textSize="12sp" />
 
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/userLastLogin"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Last login: Dec 15, 2024"
-                android:textColor="@color/light_grey"
-                android:textSize="11sp" />
+
 
         </LinearLayout>
 
@@ -117,7 +113,7 @@
             android:layout_height="24dp"
             android:layout_gravity="center_vertical"
             android:src="@drawable/ic_next"
-            app:tint="@color/grey" />
+            app:tint="#BDBDBD" />
 
     </LinearLayout>
 

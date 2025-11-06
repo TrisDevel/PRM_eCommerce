@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/backgroundSecondary"
+    android:background="#F5F5F5"
     tools:context=".activities.UserListActivity">
 
     <!-- Header -->
@@ -40,7 +40,7 @@
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_gravity="center_vertical"
-            android:src="@drawable/ic_profile"
+            android:src="@drawable/ic_search"
             app:tint="@color/white" />
 
     </LinearLayout>
@@ -81,6 +81,7 @@
             android:text="All"
             android:checked="true"
             app:chipBackgroundColor="@color/my_secondary"
+            android:textColor="@color/white"
             app:chipStrokeColor="@color/my_secondary" />
 
         <com.google.android.material.chip.Chip
@@ -90,7 +91,8 @@
             android:layout_marginEnd="8dp"
             android:text="Active"
             app:chipBackgroundColor="@color/white"
-            app:chipStrokeColor="@color/my_secondary" />
+            app:chipStrokeColor="@color/my_secondary"
+            android:textColor="@color/my_secondary" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/adminUsersChip"
@@ -99,7 +101,8 @@
             android:layout_marginEnd="8dp"
             android:text="Admin"
             app:chipBackgroundColor="@color/white"
-            app:chipStrokeColor="@color/my_secondary" />
+            app:chipStrokeColor="@color/my_secondary"
+            android:textColor="@color/my_secondary" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/newUsersChip"
@@ -107,7 +110,8 @@
             android:layout_height="wrap_content"
             android:text="New"
             app:chipBackgroundColor="@color/white"
-            app:chipStrokeColor="@color/my_secondary" />
+            app:chipStrokeColor="@color/my_secondary"
+            android:textColor="@color/my_secondary" />
 
     </LinearLayout>
 
@@ -123,7 +127,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="150 users found"
-            android:textColor="@color/grey"
+            android:textColor="#616161"
             android:textSize="14sp" />
 
         <TextView
@@ -166,14 +170,14 @@
             android:layout_width="120dp"
             android:layout_height="120dp"
             android:src="@drawable/ic_profile"
-            app:tint="@color/light_grey" />
+            app:tint="#BDBDBD" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="No users found"
-            android:textColor="@color/grey"
+            android:textColor="#616161"
             android:textSize="18sp" />
 
         <TextView
@@ -181,7 +185,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="Try adjusting your search or filter"
-            android:textColor="@color/light_grey"
+            android:textColor="#9E9E9E"
             android:textSize="14sp" />
 
     </LinearLayout>

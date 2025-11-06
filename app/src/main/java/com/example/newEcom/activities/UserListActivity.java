@@ -106,24 +106,28 @@ public class UserListActivity extends AppCompatActivity {
         allUsersChip.setOnClickListener(v -> {
             setActiveChip(allUsersChip);
             currentFilter = "all";
+            sortText.setText("Sort by: Name");
             applyFilter();
         });
 
         activeUsersChip.setOnClickListener(v -> {
             setActiveChip(activeUsersChip);
             currentFilter = "active";
+            sortText.setText("Sort by: Active");
             applyFilter();
         });
 
         adminUsersChip.setOnClickListener(v -> {
             setActiveChip(adminUsersChip);
             currentFilter = "admin";
+            sortText.setText("Sort by: Admin");
             applyFilter();
         });
 
         newUsersChip.setOnClickListener(v -> {
             setActiveChip(newUsersChip);
             currentFilter = "new";
+            sortText.setText("Sort by: New");
             applyFilter();
         });
     }

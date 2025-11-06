@@ -57,13 +57,7 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
             holder.userStatus.setTextColor(context.getResources().getColor(android.R.color.holo_red_dark));
         }
         
-        // Set last login
-        if (user.getLastLoginAt() != null) {
-            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
-            holder.userLastLogin.setText("Last login: " + sdf.format(user.getLastLoginAt().toDate()));
-        } else {
-            holder.userLastLogin.setText("Never logged in");
-        }
+
         
         // Load profile image
         if (user.getProfileImage() != null && !user.getProfileImage().isEmpty()) {
@@ -72,8 +66,12 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
                     .placeholder(R.drawable.ic_profile)
                     .error(R.drawable.ic_profile)
                     .into(holder.userProfileImage);
+            // Remove tint when loading actual image
+            holder.userProfileImage.setColorFilter(null);
         } else {
             holder.userProfileImage.setImageResource(R.drawable.ic_profile);
+            // Set tint for default icon to make it visible on light background
+            holder.userProfileImage.setColorFilter(context.getResources().getColor(R.color.my_secondary));
         }
         
         // Set click listener
@@ -96,7 +94,7 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
 
     public static class UserViewHolder extends RecyclerView.ViewHolder {
         ImageView userProfileImage;
-        TextView userName, userEmail, userRole, userStatus, userOrders, userSpent, userLastLogin;
+        TextView userName, userEmail, userRole, userStatus, userOrders, userSpent;
 
         public UserViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -107,7 +105,6 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
             userStatus = itemView.findViewById(R.id.userStatus);
             userOrders = itemView.findViewById(R.id.userOrders);
             userSpent = itemView.findViewById(R.id.userSpent);
-            userLastLogin = itemView.findViewById(R.id.userLastLogin);
         }
     }
 }
