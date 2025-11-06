@@ -122,6 +122,12 @@
             android:exported="false"
             android:theme="@style/Admin.Theme.ECom" />
 
+        <activity
+            android:name=".activities.ProductListAdminActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Admin.Theme.ECom" />
+
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />

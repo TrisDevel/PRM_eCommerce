@@ -80,7 +80,7 @@ public class AdminActivity extends AppCompatActivity {
         }
 
         if (addProductBtn != null)     addProductBtn.setOnClickListener(v -> startActivity(new Intent(this, AddProductActivity.class)));
-        if (modifyProductBtn != null)  modifyProductBtn.setOnClickListener(v -> startActivity(new Intent(this, ModifyProductActivity.class)));
+        if (modifyProductBtn != null)  modifyProductBtn.setOnClickListener(v -> startActivity(new Intent(this, ProductListAdminActivity.class)));
         if (addCategoryBtn != null)    addCategoryBtn.setOnClickListener(v -> startActivity(new Intent(this, AddCategoryActivity.class)));
         if (modifyCategoryBtn != null) modifyCategoryBtn.setOnClickListener(v -> startActivity(new Intent(this, ModifyCategoryActivity.class)));
         if (addBannerBtn != null)      addBannerBtn.setOnClickListener(v -> startActivity(new Intent(this, AddBannerActivity.class)));

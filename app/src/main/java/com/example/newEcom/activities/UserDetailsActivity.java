@@ -101,18 +101,31 @@ public class UserDetailsActivity extends AppCompatActivity {
     }
 
     private void loadUserDetails() {
-        // For demo purposes, show default user data
-        // In a real app, you would load user data from your backend
-        currentUser = new UserModel();
-        currentUser.setUid(userUid);
-        currentUser.setFullName("Demo User");
-        currentUser.setEmail("demo@example.com");
-        currentUser.setRole("user");
-        currentUser.setActive(true);
-        currentUser.setTotalOrders(0);
-        currentUser.setTotalSpent(0);
-        
-        populateUserData();
+        FirebaseUtil.getUsers().document(userUid).get()
+                .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                        if (task.isSuccessful()) {
+                            DocumentSnapshot document = task.getResult();
+                            if (document != null && document.exists()) {
+                                currentUser = document.toObject(UserModel.class);
+                                if (currentUser != null) {
+                                    populateUserData();
+                                } else {
+                                    Log.e(TAG, "Error converting document to UserModel");
+                                    Toast.makeText(UserDetailsActivity.this, "Failed to parse user data", Toast.LENGTH_SHORT).show();
+                                }
+                            } else {
+                                Log.e(TAG, "No such user document with uid: " + userUid);
+                                Toast.makeText(UserDetailsActivity.this, "User not found", Toast.LENGTH_SHORT).show();
+                                finish();
+                            }
+                        } else {
+                            Log.e(TAG, "Error getting user details: ", task.getException());
+                            Toast.makeText(UserDetailsActivity.this, "Failed to load user details", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
     }
 
     private void populateUserData() {
