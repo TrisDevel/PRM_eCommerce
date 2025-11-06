@@ -75,4 +75,10 @@ public class FirebaseUtil {
     public static StorageReference getBannerImageReference(String id){
         return FirebaseStorage.getInstance().getReference().child("banner_images").child(id);
     }
+
+    // Phương thức mới: Lấy collection users từ Firestore
+    // Sử dụng cho User Management trong Admin Dashboard
+    public static CollectionReference getUsers(){
+        return FirebaseFirestore.getInstance().collection("users");
+    }
 }
