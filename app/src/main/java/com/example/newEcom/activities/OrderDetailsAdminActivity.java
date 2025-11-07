@@ -67,46 +67,25 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         
         try {
-            Log.d(TAG, "🚀 Step 1: Setting content view...");
             setContentView(R.layout.activity_order_details_admin);
-            Log.d(TAG, "✅ Step 1: Content view set successfully");
-
-            Log.d(TAG, "🚀 Step 2: Binding views...");
             bindViews();
-            Log.d(TAG, "✅ Step 2: Views bound successfully");
-            
-            Log.d(TAG, "🚀 Step 3: Getting intent data...");
             getIntentData();
-            Log.d(TAG, "✅ Step 3: Intent data retrieved successfully");
 
-            // ✅ Validate Intent data
+            //Validate Intent data
             if (orderId == 0) {
-                Log.e(TAG, "❌ Invalid orderId received: " + orderId);
+                Log.e(TAG, "Invalid orderId received: " + orderId);
                 Toast.makeText(this, "Error: Invalid order data", Toast.LENGTH_SHORT).show();
                 finish();
                 return;
             }
 
-            Log.d(TAG, "🚀 Step 4: Displaying order info...");
             displayOrderInfo();
-            Log.d(TAG, "✅ Step 4: Order info displayed successfully");
-
-            Log.d(TAG, "🚀 Step 5: Setting up status spinner...");
             setupStatusSpinner();
-            Log.d(TAG, "✅ Step 5: Status spinner setup successfully");
-
-            Log.d(TAG, "🚀 Step 6: Wiring click listeners...");
             wireClicks();
-            Log.d(TAG, "✅ Step 6: Click listeners wired successfully");
-
-            Log.d(TAG, "🚀 Step 7: Loading order items...");
             loadOrderItems();
-            Log.d(TAG, "✅ Step 7: Order items loading initiated");
-            
-            Log.d(TAG, "✅✅✅ OrderDetailsAdminActivity initialized successfully for Order #" + orderId);
             
         } catch (Exception e) {
-            Log.e(TAG, "❌❌❌ CRASH in onCreate", e);
+            Log.e(TAG, "CRASH in onCreate", e);
             Log.e(TAG, "Exception type: " + e.getClass().getName());
             Log.e(TAG, "Exception message: " + e.getMessage());
             
@@ -124,7 +103,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
     }
 
     /**
-     * ✅ BIND VIEWS
+     * BIND VIEWS
      */
     private void bindViews() {
         try {
@@ -147,7 +126,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
             orderItemsRecyclerView = findViewById(R.id.orderItemsRecyclerView);
             emptyItemsText = findViewById(R.id.emptyItemsText);
 
-            // ✅ Validate critical views
+            //Validate critical views
             if (backBtn == null || orderIdText == null || statusText == null) {
                 throw new RuntimeException("Critical views not found in layout");
             }
@@ -158,16 +137,14 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
             progressDialog.setTitleText("Updating...");
             progressDialog.setCancelable(false);
             
-            Log.d(TAG, "✅ All views bound successfully");
-            
         } catch (Exception e) {
-            Log.e(TAG, "❌ Error binding views: " + e.getMessage(), e);
+            Log.e(TAG, "Error binding views: " + e.getMessage(), e);
             throw e; // Re-throw để onCreate catch
         }
     }
 
     /**
-     * ✅ LẤY DỮ LIỆU TỪ INTENT
+     *LẤY DỮ LIỆU TỪ INTENT
      */
     private void getIntentData() {
         try {
@@ -184,21 +161,14 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
             timestampSeconds = getIntent().getLongExtra("timestamp", 0);
             comments = getIntent().getStringExtra("comments");
             
-            Log.d(TAG, "📥 Intent data received:");
-            Log.d(TAG, "   - orderId: " + orderId);
-            Log.d(TAG, "   - customerName: " + customerName);
-            Log.d(TAG, "   - status: " + status);
-            Log.d(TAG, "   - paymentMethod: " + paymentMethod);
-            Log.d(TAG, "   - totalAmount: " + totalAmount);
-            
         } catch (Exception e) {
-            Log.e(TAG, "❌ Error getting intent data: " + e.getMessage(), e);
+            Log.e(TAG, "Error getting intent data: " + e.getMessage(), e);
             throw e;
         }
     }
 
     /**
-     * ✅ HIỂN THỊ THÔNG TIN ORDER
+     *HIỂN THỊ THÔNG TIN ORDER
      */
     private void displayOrderInfo() {
         // Order ID
@@ -251,7 +221,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
     }
 
     /**
-     * ✅ SETUP STATUS SPINNER
+     *SETUP STATUS SPINNER
      */
     private void setupStatusSpinner() {
         // Danh sách status có thể chọn
@@ -275,7 +245,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
     }
 
     /**
-     * ✅ WIRE CLICK LISTENERS
+     *WIRE CLICK LISTENERS
      */
     private void wireClicks() {
         backBtn.setOnClickListener(v -> onBackPressed());
@@ -287,7 +257,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
     }
 
     /**
-     * ✅ LOAD ORDER ITEMS TỪ FIRESTORE
+     *LOAD ORDER ITEMS TỪ FIRESTORE
      * Lấy danh sách sản phẩm trong order này
      */
     private void loadOrderItems() {
@@ -297,9 +267,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
             orderItemsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
             orderItemsRecyclerView.setAdapter(orderItemAdapter);
             
-            Log.d(TAG, "Loading order items for orderId: " + orderId);
-            
-            // ✅ Kiểm tra itemCount trước khi query
+            //Kiểm tra itemCount trước khi query
             if (itemCount == 0) {
                 Log.w(TAG, "Order has 0 items. Skipping Firestore query.");
                 orderItemsRecyclerView.setVisibility(View.GONE);
@@ -308,7 +276,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
             }
             
             // Query Firestore để lấy order items
-            // ✅ Sửa lỗi: Query collection group "ordersList" để tìm đúng document cha,
+            //Sửa lỗi: Query collection group "ordersList" để tìm đúng document cha,
             // sau đó mới lấy collection "items" con.
             FirebaseFirestore.getInstance()
                     .collectionGroup("ordersList")
@@ -337,13 +305,11 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
                                                 try {
                                                     OrderItemModel item = document.toObject(OrderItemModel.class);
                                                     orderItems.add(item);
-                                                    Log.d(TAG, "Item: " + item.getName() + " x" + item.getQuantity());
                                                 } catch (Exception e) {
                                                     Log.e(TAG, "Error parsing order item: " + e.getMessage(), e);
                                                 }
                                             }
                                             orderItemAdapter.notifyDataSetChanged();
-                                            Log.d(TAG, "Loaded " + orderItems.size() + " order items");
                                         } else {
                                             Log.e(TAG, "Error loading order items", itemsTask.getException());
                                             Toast.makeText(OrderDetailsAdminActivity.this, "Failed to load order items", Toast.LENGTH_SHORT).show();
@@ -362,7 +328,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
     }
 
     /**
-     * ✅ CẬP NHẬT ORDER STATUS
+     *CẬP NHẬT ORDER STATUS
      * Cập nhật status trong Firestore cho TẤT CẢ items có cùng orderId
      */
     private void updateOrderStatus(String newStatus) {
@@ -372,9 +338,8 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
         }
 
         progressDialog.show();
-        Log.d(TAG, "Updating order #" + orderId + " status: " + status + " → " + newStatus);
 
-        // ✅ Sửa lỗi: Thống nhất logic query. Luôn tìm order summary trước.
+        //Sửa lỗi: Thống nhất logic query. Luôn tìm order summary trước.
         FirebaseFirestore.getInstance()
                 .collectionGroup("ordersList")
                 .whereEqualTo("orderId", orderId)
@@ -395,7 +360,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
     }
 
     /**
-     * ✅ Cập nhật tất cả các collection con (items) trước, sau đó mới cập nhật document cha (order summary)
+     *Cập nhật tất cả các collection con (items) trước, sau đó mới cập nhật document cha (order summary)
      */
     private void updateAllSubCollections(QueryDocumentSnapshot orderSummaryDoc, String newStatus) {
         // 1. Cập nhật collection con "items"
@@ -434,13 +399,12 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
     }
 
     /**
-     * ✅ Cập nhật document cha (order summary)
+     *Cập nhật document cha (order summary)
      */
     private void updateOrderSummary(QueryDocumentSnapshot orderSummaryDoc, String newStatus) {
         orderSummaryDoc.getReference().update("status", newStatus).addOnCompleteListener(summaryTask -> {
             progressDialog.dismiss();
             if (summaryTask.isSuccessful()) {
-                Log.d(TAG, "Updated order summary status");
                 status = newStatus;
                 statusText.setText(newStatus);
                 setStatusColor(statusText, newStatus);
@@ -455,7 +419,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
 
 
     /**
-     * ✅ SET STATUS COLOR
+     * SET STATUS COLOR
      */
     private void setStatusColor(TextView textView, String status) {
         if (textView == null || status == null) {
@@ -491,7 +455,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
     }
 
     /**
-     * ✅ SET PAYMENT METHOD COLOR
+     *SET PAYMENT METHOD COLOR
      */
     private void setPaymentMethodColor(TextView textView, String paymentMethod) {
         if (textView == null || paymentMethod == null) {
@@ -521,7 +485,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
     }
 
     /**
-     * ✅ SHOW SUCCESS DIALOG
+     *SHOW SUCCESS DIALOG
      */
     private void showSuccessDialog(String message) {
         new SweetAlertDialog(this, SweetAlertDialog.SUCCESS_TYPE)
@@ -536,7 +500,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
     }
 
     /**
-     * ✅ SHOW ERROR DIALOG
+     *SHOW ERROR DIALOG
      */
     private void showErrorDialog(String message) {
         new SweetAlertDialog(this, SweetAlertDialog.ERROR_TYPE)
