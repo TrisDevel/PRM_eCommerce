@@ -48,8 +48,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
     TextView orderIdText, customerNameText, emailText, phoneText, addressText;
     TextView statusText, paymentMethodText, transactionIdText, totalAmountText, itemCountText, orderDateText;
     TextView commentsText, emptyItemsText;
-    Spinner statusSpinner;
-    Button updateStatusBtn;
+
     RecyclerView orderItemsRecyclerView;
     androidx.cardview.widget.CardView commentsLayout;
 
@@ -80,9 +79,8 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
             }
 
             displayOrderInfo();
-            setupStatusSpinner();
-            wireClicks();
             loadOrderItems();
+            backBtn.setOnClickListener(v -> onBackPressed());
             
         } catch (Exception e) {
             Log.e(TAG, "CRASH in onCreate", e);
@@ -121,8 +119,6 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
             orderDateText = findViewById(R.id.orderDateText);
             commentsText = findViewById(R.id.commentsText);
             commentsLayout = findViewById(R.id.commentsLayout);
-            statusSpinner = findViewById(R.id.statusSpinner);
-            updateStatusBtn = findViewById(R.id.updateStatusBtn);
             orderItemsRecyclerView = findViewById(R.id.orderItemsRecyclerView);
             emptyItemsText = findViewById(R.id.emptyItemsText);
 
@@ -220,41 +216,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     *SETUP STATUS SPINNER
-     */
-    private void setupStatusSpinner() {
-        // Danh sách status có thể chọn
-        String[] statuses = {"Pending", "Confirmed", "Shipping", "Delivered", "Cancelled"};
-        
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                this, 
-                android.R.layout.simple_spinner_item, 
-                statuses
-        );
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        statusSpinner.setAdapter(adapter);
-        
-        // Set selected item = current status
-        if (status != null) {
-            int position = adapter.getPosition(status);
-            if (position >= 0) {
-                statusSpinner.setSelection(position);
-            }
-        }
-    }
 
-    /**
-     *WIRE CLICK LISTENERS
-     */
-    private void wireClicks() {
-        backBtn.setOnClickListener(v -> onBackPressed());
-        
-        updateStatusBtn.setOnClickListener(v -> {
-            String newStatus = statusSpinner.getSelectedItem().toString();
-            updateOrderStatus(newStatus);
-        });
-    }
 
     /**
      *LOAD ORDER ITEMS TỪ FIRESTORE
@@ -327,94 +289,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     *CẬP NHẬT ORDER STATUS
-     * Cập nhật status trong Firestore cho TẤT CẢ items có cùng orderId
-     */
-    private void updateOrderStatus(String newStatus) {
-        if (newStatus.equals(status)) {
-            Toast.makeText(this, "Status unchanged", Toast.LENGTH_SHORT).show();
-            return;
-        }
 
-        progressDialog.show();
-
-        //Sửa lỗi: Thống nhất logic query. Luôn tìm order summary trước.
-        FirebaseFirestore.getInstance()
-                .collectionGroup("ordersList")
-                .whereEqualTo("orderId", orderId)
-                .limit(1)
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && task.getResult() != null && !task.getResult().isEmpty()) {
-                        QueryDocumentSnapshot orderSummaryDoc = (QueryDocumentSnapshot) task.getResult().getDocuments().get(0);
-                        
-                        // Bắt đầu cập nhật items và sau đó là summary
-                        updateAllSubCollections(orderSummaryDoc, newStatus);
-                    } else {
-                        progressDialog.dismiss();
-                        showErrorDialog("Could not find the order to update.");
-                        Log.e(TAG, "Error finding order summary for update", task.getException());
-                    }
-                });
-    }
-
-    /**
-     *Cập nhật tất cả các collection con (items) trước, sau đó mới cập nhật document cha (order summary)
-     */
-    private void updateAllSubCollections(QueryDocumentSnapshot orderSummaryDoc, String newStatus) {
-        // 1. Cập nhật collection con "items"
-        orderSummaryDoc.getReference().collection("items").get().addOnCompleteListener(itemsTask -> {
-            if (itemsTask.isSuccessful() && itemsTask.getResult() != null) {
-                int totalItems = itemsTask.getResult().size();
-                if (totalItems == 0) {
-                    // Nếu không có item nào, cập nhật summary luôn
-                    updateOrderSummary(orderSummaryDoc, newStatus);
-                    return;
-                }
-
-                int[] updatedCount = {0};
-                for (QueryDocumentSnapshot itemDoc : itemsTask.getResult()) {
-                    itemDoc.getReference().update("status", newStatus).addOnCompleteListener(updateTask -> {
-                        if (updateTask.isSuccessful()) {
-                            updatedCount[0]++;
-                            // Nếu đã update hết tất cả items, thì update summary
-                            if (updatedCount[0] == totalItems) {
-                                updateOrderSummary(orderSummaryDoc, newStatus);
-                            }
-                        } else {
-                            // Nếu một item bị lỗi, dừng lại và báo lỗi
-                            progressDialog.dismiss();
-                            showErrorDialog("Failed to update one of the order items.");
-                            Log.e(TAG, "Failed to update item: " + itemDoc.getId(), updateTask.getException());
-                        }
-                    });
-                }
-            } else {
-                progressDialog.dismiss();
-                showErrorDialog("Could not read order items to update.");
-                Log.e(TAG, "Error getting items sub-collection", itemsTask.getException());
-            }
-        });
-    }
-
-    /**
-     *Cập nhật document cha (order summary)
-     */
-    private void updateOrderSummary(QueryDocumentSnapshot orderSummaryDoc, String newStatus) {
-        orderSummaryDoc.getReference().update("status", newStatus).addOnCompleteListener(summaryTask -> {
-            progressDialog.dismiss();
-            if (summaryTask.isSuccessful()) {
-                status = newStatus;
-                statusText.setText(newStatus);
-                setStatusColor(statusText, newStatus);
-                showSuccessDialog("Order status updated to: " + newStatus);
-            } else {
-                showErrorDialog("Failed to update the main order status.");
-                Log.e(TAG, "Failed to update order summary", summaryTask.getException());
-            }
-        });
-    }
 
 
 

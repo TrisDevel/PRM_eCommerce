@@ -46,6 +46,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="16dp"
+            app:cardBackgroundColor="@android:color/white"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp">
 
@@ -207,6 +208,7 @@
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
             android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@android:color/white"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp">
 
@@ -334,52 +336,7 @@
 
         </androidx.cardview.widget.CardView>
 
-        <!-- Update Status Card -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/backgroundSecondary">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Update Order Status"
-                    android:textColor="@color/black"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="12dp" />
-
-                <Spinner
-                    android:id="@+id/statusSpinner"
-                    android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:background="@drawable/quantity_white_background"
-                    android:padding="12dp"
-                    android:layout_marginBottom="12dp" />
-
-                <Button
-                    android:id="@+id/updateStatusBtn"
-                    android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:text="Update Status"
-                    android:textColor="@color/white"
-                    android:backgroundTint="@color/my_secondary"
-                    android:textStyle="bold"
-                    android:textSize="16sp" />
-
-            </LinearLayout>
-
-        </androidx.cardview.widget.CardView>
 
         <!-- Order Items List -->
         <androidx.cardview.widget.CardView
