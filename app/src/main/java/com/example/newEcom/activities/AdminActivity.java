@@ -21,7 +21,7 @@ public class AdminActivity extends AppCompatActivity {
     private static final String TAG = "AdminScreen";
 
     LinearLayout logoutBtn;
-    CardView addProductBtn, modifyProductBtn, addCategoryBtn, modifyCategoryBtn, addBannerBtn, modifyBannerBtn, userManagementBtn;
+    CardView addProductBtn, modifyProductBtn, addCategoryBtn, modifyCategoryBtn, addBannerBtn, modifyBannerBtn, userManagementBtn, orderManagementBtn;
     TextView countOrders, priceOrders; // usersTextView;
 
     @Override
@@ -44,6 +44,7 @@ public class AdminActivity extends AppCompatActivity {
         addBannerBtn      = findViewById(R.id.addBannerBtn);
         modifyBannerBtn   = findViewById(R.id.modifyBannerBtn);
         userManagementBtn = findViewById(R.id.userManagementBtn);
+        orderManagementBtn = findViewById(R.id.orderManagementBtn);
         countOrders       = findViewById(R.id.countOrders);
         priceOrders       = findViewById(R.id.priceOrders);
         // usersTextView  = findViewById(R.id.usersTextView);
@@ -86,6 +87,7 @@ public class AdminActivity extends AppCompatActivity {
         if (addBannerBtn != null)      addBannerBtn.setOnClickListener(v -> startActivity(new Intent(this, AddBannerActivity.class)));
         if (modifyBannerBtn != null)   modifyBannerBtn.setOnClickListener(v -> startActivity(new Intent(this, BannerListAdminActivity.class)));
         if (userManagementBtn != null) userManagementBtn.setOnClickListener(v -> startActivity(new Intent(this, UserManagementActivity.class)));
+        if (orderManagementBtn != null) orderManagementBtn.setOnClickListener(v -> startActivity(new Intent(this, OrderManagementActivity.class)));
     }
 
     private void getDetails() {

@@ -81,4 +81,34 @@ public class FirebaseUtil {
     public static CollectionReference getUsers(){
         return FirebaseFirestore.getInstance().collection("users");
     }
+
+    /**
+     * @return Query object để lấy tất cả orders
+     */
+    public static Query getAllOrders() {
+        return FirebaseFirestore.getInstance()
+                .collectionGroup("ordersList");  // Query tất cả collection có tên "ordersList"
+    }
+
+    /**
+     * @param status Trạng thái cần filter (VD: "Confirmed", "Pending")
+     * @return Query object đã được filter theo status
+     */
+    public static Query getOrdersByStatus(String status) {
+        return FirebaseFirestore.getInstance()
+                .collectionGroup("ordersList")
+                .whereEqualTo("status", status)
+                .orderBy("timestamp", Query.Direction.DESCENDING);
+    }
+
+    /**
+     * @param paymentMethod Phương thức thanh toán (VD: "MOMO", "COD")
+     * @return Query object đã được filter theo payment method
+     */
+    public static Query getOrdersByPaymentMethod(String paymentMethod) {
+        return FirebaseFirestore.getInstance()
+                .collectionGroup("ordersList")
+                .whereEqualTo("paymentMethod", paymentMethod)
+                .orderBy("timestamp", Query.Direction.DESCENDING);
+    }
 }
