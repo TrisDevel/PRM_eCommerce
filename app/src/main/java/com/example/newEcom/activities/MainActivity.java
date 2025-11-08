@@ -6,6 +6,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
@@ -34,6 +35,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 import com.google.firebase.dynamiclinks.FirebaseDynamicLinks;
 import com.google.firebase.dynamiclinks.PendingDynamicLinkData;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.mancj.materialsearchbar.MaterialSearchBar;
 import com.mancj.materialsearchbar.SimpleOnSearchActionListener;
@@ -130,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
 
         handleDeepLink();
 
-        if (getIntent().getBooleanExtra("orderPlaced", false)){
+        if (getIntent().getBooleanExtra("orderPlaced", false)) {
             getSupportFragmentManager().beginTransaction().replace(R.id.main_frame_layout, profileFragment, "profile").addToBackStack(null).commit();
             bottomNavigationView.setSelectedItemId(R.id.profile);
         }
@@ -143,11 +145,11 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void showSearchBar(){
+    public void showSearchBar() {
         searchLinearLayout.setVisibility(View.VISIBLE);
     }
 
-    public void hideSearchBar(){
+    public void hideSearchBar() {
         searchLinearLayout.setVisibility(View.GONE);
     }
 
@@ -177,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
                 .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                     @Override
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (task.isSuccessful()){
+                        if (task.isSuccessful()) {
                             int n = task.getResult().size();
                             BadgeDrawable badge = bottomNavigationView.getOrCreateBadge(R.id.cart);
                             badge.setBackgroundColor(Color.parseColor("#FFF44336"));
@@ -217,7 +219,117 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
+
     }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        listenForNotifications();
+    }
+
+    private void listenForNotifications() {
+        final SharedPreferences prefs = getSharedPreferences("prefs", MODE_PRIVATE);
+        final long lastSeen = prefs.getLong("lastSeenNotification", 0);
+
+        FirebaseFirestore.getInstance()
+                .collection("notifications")
+                .orderBy("timestamp")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    long newLastSeen = lastSeen;
+
+                    for (int i = 0; i < queryDocumentSnapshots.size(); i++) {
+                        final com.google.firebase.firestore.DocumentSnapshot doc = queryDocumentSnapshots.getDocuments().get(i);
+                        Long timestamp = doc.getLong("timestamp");
+                        if (timestamp != null && timestamp > lastSeen) {
+                            String title = doc.getString("title");
+                            String body = doc.getString("body");
+                            String imageUrl = doc.getString("image"); // Lấy URL ảnh
+
+                            if (title != null && body != null) {
+                                showLocalNotification(title, body, imageUrl);
+                            }
+
+                            if (timestamp > newLastSeen) {
+                                newLastSeen = timestamp;
+                            }
+                        }
+                    }
+
+                    // Lưu timestamp mới nhất
+                    prefs.edit().putLong("lastSeenNotification", newLastSeen).apply();
+                })
+                .addOnFailureListener(e -> e.printStackTrace());
+    }
+
+
+    private void showLocalNotification(String title, String message, String imageUrl) {
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            new Thread(() -> {
+                try {
+                    java.net.URL url = new java.net.URL(imageUrl);
+                    android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(url.openConnection().getInputStream());
+
+                    // Khai báo style trực tiếp trong thread
+                    androidx.core.app.NotificationCompat.BigPictureStyle style =
+                            new androidx.core.app.NotificationCompat.BigPictureStyle()
+                                    .bigPicture(bitmap)
+                                    .bigLargeIcon(null)
+                                    .setSummaryText(message);
+
+                    sendNotification(title, message, style);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    sendNotification(title, message, null);
+                }
+            }).start();
+        } else {
+            sendNotification(title, message, null);
+        }
+    }
+
+
+    private void sendNotification(String title, String message, androidx.core.app.NotificationCompat.BigPictureStyle style) {
+        androidx.core.app.NotificationCompat.Builder builder =
+                new androidx.core.app.NotificationCompat.Builder(this, "memoirs_channel")
+                        .setSmallIcon(R.drawable.ic_cart)
+                        .setContentTitle(title)
+                        .setContentText(message)
+                        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
+                        .setAutoCancel(true);
+
+        if (style != null) builder.setStyle(style);
+
+        androidx.core.app.NotificationManagerCompat notificationManager =
+                androidx.core.app.NotificationManagerCompat.from(this);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            android.app.NotificationChannel channel = new android.app.NotificationChannel(
+                    "memoirs_channel", "Memoirs Notifications",
+                    android.app.NotificationManager.IMPORTANCE_DEFAULT
+            );
+            notificationManager.createNotificationChannel(channel);
+        }
+
+        // Kiểm tra quyền
+        if (androidx.core.content.ContextCompat.checkSelfPermission(
+                this, android.Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) {
+
+            notificationManager.notify((int) System.currentTimeMillis(), builder.build());
+
+        } else {
+            androidx.core.app.ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
+                    101
+            );
+        }
+    }
+
+
 //    @Override
 //    protected void onStart() {
 //        super.onStart();
