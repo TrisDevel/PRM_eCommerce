@@ -31,6 +31,9 @@ import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.messaging.FirebaseMessaging;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class LoginActivity extends AppCompatActivity {
     private static final int RC_GOOGLE = 101;
 
@@ -79,7 +82,6 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     changeInProgress(false);
                     if (task.isSuccessful()) {
-                        // KHÔNG điều hướng Admin/Main ở đây!
                         saveUserFcmToken();
                         goToSplash();
                     } else {
@@ -89,38 +91,64 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void googleSignin() {
-        Intent intent = googleSignInClient.getSignInIntent();
-        startActivityForResult(intent, RC_GOOGLE);
+        changeInProgress(true);
+        Intent signInIntent = googleSignInClient.getSignInIntent();
+        startActivityForResult(signInIntent, RC_GOOGLE);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
         if (requestCode == RC_GOOGLE) {
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
             try {
                 GoogleSignInAccount account = task.getResult(ApiException.class);
-                firebaseAuthWithGoogle(account.getIdToken());
-            } catch (Exception e) {
-                Toast.makeText(this, "Google Sign-In thất bại.", Toast.LENGTH_SHORT).show();
+                if (account != null) {
+                    firebaseAuthWithGoogle(account);
+                } else {
+                    changeInProgress(false);
+                    Toast.makeText(this, "Không lấy được tài khoản Google.", Toast.LENGTH_SHORT).show();
+                }
+            } catch (ApiException e) {
                 changeInProgress(false);
+                Toast.makeText(this, "Đăng nhập Google thất bại: " + e.getStatusCode(), Toast.LENGTH_SHORT).show();
             }
         }
     }
 
-    private void firebaseAuthWithGoogle(String idToken) {
+    private void firebaseAuthWithGoogle(GoogleSignInAccount account) {
+        String idToken = account.getIdToken();
         if (idToken == null) {
-            Toast.makeText(this, "Thiếu ID token.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Thiếu ID Token.", Toast.LENGTH_SHORT).show();
+            changeInProgress(false);
             return;
         }
-        changeInProgress(true);
+
         AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
         auth.signInWithCredential(credential)
-                .addOnCompleteListener(this, (OnCompleteListener<AuthResult>) task -> {
+                .addOnCompleteListener(this, task -> {
                     changeInProgress(false);
                     if (task.isSuccessful()) {
-                        // KHÔNG điều hướng Admin/Main ở đây!
-                        goToSplash();
+                        FirebaseFirestore db = FirebaseFirestore.getInstance();
+                        String uid = auth.getCurrentUser().getUid();
+
+                        db.collection("user").document(uid)
+                                .get()
+                                .addOnSuccessListener(documentSnapshot -> {
+                                    if (!documentSnapshot.exists()) {
+                                        Map<String, Object> userMap = new HashMap<>();
+                                        userMap.put("name", account.getDisplayName());
+                                        userMap.put("email", account.getEmail());
+                                        userMap.put("fcmToken", "");
+                                        db.collection("user").document(uid).set(userMap);
+                                    }
+                                    saveUserFcmToken();
+                                    goToSplash();
+                                })
+                                .addOnFailureListener(e ->
+                                        Toast.makeText(LoginActivity.this, "Không thể tạo user: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                                );
                     } else {
                         Toast.makeText(LoginActivity.this, "Xác thực Google thất bại.", Toast.LENGTH_SHORT).show();
                     }
@@ -171,7 +199,7 @@ public class LoginActivity extends AppCompatActivity {
                                     FirebaseFirestore.getInstance()
                                             .collection("user")
                                             .document(uid)
-                                            .set(new java.util.HashMap<String, Object>() {{
+                                            .set(new HashMap<String, Object>() {{
                                                 put("fcmToken", token);
                                             }}, com.google.firebase.firestore.SetOptions.merge());
                                 });
