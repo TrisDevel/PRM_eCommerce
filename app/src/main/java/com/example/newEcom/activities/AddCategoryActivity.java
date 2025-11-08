@@ -28,6 +28,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.squareup.picasso.Callback;
+import android.util.Log;
 import com.squareup.picasso.Picasso;
 
 import cn.pedant.SweetAlert.SweetAlertDialog;
@@ -67,8 +68,25 @@ public class AddCategoryActivity extends AppCompatActivity {
                     @Override
                     public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                         if (task.isSuccessful()) {
-                            categoryId = Integer.parseInt(task.getResult().get("lastCategoryId").toString()) + 1;
-                            idEditText.setText(categoryId+ "");
+                            DocumentSnapshot document = task.getResult();
+                            if (document != null && document.exists()) {
+                                Long lastId = document.getLong("lastCategoryId");
+                                if (lastId != null) {
+                                    categoryId = lastId.intValue() + 1;
+                                } else {
+                                    // If field doesn't exist, start from 1
+                                    categoryId = 1;
+                                }
+                            } else {
+                                // If document doesn't exist, start from 1
+                                categoryId = 1;
+                            }
+                            idEditText.setText(String.valueOf(categoryId));
+                        } else {
+                            // On failure, default to 1 and log error
+                            categoryId = 1;
+                            idEditText.setText(String.valueOf(categoryId));
+                            Log.e("AddCategoryActivity", "Failed to get lastCategoryId", task.getException());
                         }
                     }
                 });

@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="#F5F5F5"
-    tools:context=".activities.UserListActivity">
+    tools:context=".activities.OrderManagementActivity">
 
     <!-- Header -->
     <LinearLayout
@@ -30,7 +30,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="16dp"
-            android:text="All Users"
+            android:text="Order Management"
             android:textColor="@color/white"
             android:textSize="24sp"
             android:textStyle="bold" />
@@ -60,73 +60,102 @@
             style="@style/MaterialSearchBarLight"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:mt_hint="Search users..."
-            app:mt_placeholder="Search by name, email, role..."
+            app:mt_hint="Search orders..."
+            app:mt_placeholder="Search by Order ID, Name, Email, Phone..."
             app:mt_maxSuggestionsCount="10" />
 
     </LinearLayout>
 
-    <!-- Filter Chips -->
+    <!-- Filter Chips - Status -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginHorizontal="16dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/allOrdersChip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="All"
+                android:checked="true"
+                app:chipBackgroundColor="@color/my_secondary"
+                android:textColor="@color/white"
+                app:chipStrokeColor="@color/my_secondary" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/pendingChip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="Pending"
+                app:chipBackgroundColor="@color/white"
+                app:chipStrokeColor="@color/orange"
+                android:textColor="@color/orange" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/confirmedChip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="Confirmed"
+                app:chipBackgroundColor="@color/white"
+                app:chipStrokeColor="@color/blue"
+                android:textColor="@color/blue" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/shippingChip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="Shipping"
+                app:chipBackgroundColor="@color/white"
+                app:chipStrokeColor="@color/purple"
+                android:textColor="@color/purple" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/deliveredChip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="Delivered"
+                app:chipBackgroundColor="@color/white"
+                app:chipStrokeColor="@color/green"
+                android:textColor="@color/green" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/cancelledChip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cancelled"
+                app:chipBackgroundColor="@color/white"
+                app:chipStrokeColor="@color/red"
+                android:textColor="@color/red" />
+
+        </LinearLayout>
+
+    </HorizontalScrollView>
+
+    <!-- Order Count -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:orientation="horizontal">
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/allUsersChip"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:text="All"
-            android:checked="true"
-            app:chipBackgroundColor="@color/my_secondary"
-            android:textColor="@color/white"
-            app:chipStrokeColor="@color/my_secondary" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/activeUsersChip"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:text="Active"
-            app:chipBackgroundColor="@color/white"
-            app:chipStrokeColor="@color/my_secondary"
-            android:textColor="@color/my_secondary" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/adminUsersChip"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:text="Admin"
-            app:chipBackgroundColor="@color/white"
-            app:chipStrokeColor="@color/my_secondary"
-            android:textColor="@color/my_secondary" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/newUsersChip"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="New"
-            app:chipBackgroundColor="@color/white"
-            app:chipStrokeColor="@color/my_secondary"
-            android:textColor="@color/my_secondary" />
-
-    </LinearLayout>
-
-    <!-- User Count -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:layout_marginHorizontal="16dp"
         android:orientation="horizontal">
 
         <TextView
-            android:id="@+id/userCountText"
+            android:id="@+id/orderCountText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="150 users found"
+            android:text="0 orders found"
             android:textColor="#616161"
             android:textSize="14sp" />
 
@@ -139,16 +168,16 @@
             android:id="@+id/sortText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Sort by: Name"
+            android:text="Sort by: Latest"
             android:textColor="@color/my_secondary"
             android:textSize="14sp"
             android:textStyle="bold" />
 
     </LinearLayout>
 
-    <!-- Users List -->
+    <!-- Orders List -->
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/usersRecyclerView"
+        android:id="@+id/ordersRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
@@ -169,14 +198,14 @@
         <ImageView
             android:layout_width="120dp"
             android:layout_height="120dp"
-            android:src="@drawable/ic_profile"
+            android:src="@drawable/pk"
             app:tint="#BDBDBD" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="No users found"
+            android:text="No orders found"
             android:textColor="#616161"
             android:textSize="18sp" />
 
@@ -191,3 +220,4 @@
     </LinearLayout>
 
 </LinearLayout>
+

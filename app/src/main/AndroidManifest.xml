@@ -121,6 +121,34 @@
             android:screenOrientation="portrait"
             android:exported="false"
             android:theme="@style/Admin.Theme.ECom" />
+        <activity
+            android:name=".activities.OrderManagementActivity"
+            android:screenOrientation="portrait"
+            android:exported="false"
+            android:theme="@style/Admin.Theme.ECom" />
+        <activity
+            android:name=".activities.OrderDetailsAdminActivity"
+            android:screenOrientation="portrait"
+            android:exported="false"
+            android:theme="@style/Admin.Theme.ECom" />
+
+        <activity
+            android:name=".activities.ProductListAdminActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Admin.Theme.ECom" />
+
+        <activity
+            android:name=".activities.CategoryListAdminActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Admin.Theme.ECom" />
+
+        <activity
+            android:name=".activities.BannerListAdminActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Admin.Theme.ECom" />
 
         <activity android:name=".activities.SendNotificationActivity"
             android:screenOrientation="portrait"

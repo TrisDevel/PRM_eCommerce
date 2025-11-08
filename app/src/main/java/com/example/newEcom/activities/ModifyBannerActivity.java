@@ -59,6 +59,7 @@ public class ModifyBannerActivity extends AppCompatActivity {
         // --- Init views ---
         detailsLinearLayout = findViewById(R.id.detailsLinearLayout);
         idDropDown = findViewById(R.id.idDropDown);
+        idDropDown.setVisibility(View.GONE);
         descEditText = findViewById(R.id.descriptionEditText);
         statusDropDown = findViewById(R.id.statusDropDown);
         bannerImageView = findViewById(R.id.bannerImageView);
@@ -78,20 +79,13 @@ public class ModifyBannerActivity extends AppCompatActivity {
         removeImageBtn.setOnClickListener(v -> removeImage());
         modifyBannerBtn.setOnClickListener(v -> updateToFirebase());
 
-        // --- Init Banner IDs Dropdown ---
-        initDropDown((bannerList, docIdList) -> {
-            String[] ids = new String[bannerList.size()];
-            for (int i = 0; i < bannerList.size(); i++)
-                ids[i] = Integer.toString(bannerList.get(i).getBannerId());
-
-            idAdapter = new ArrayAdapter<>(context, R.layout.dropdown_item, ids);
-            idDropDown.setAdapter(idAdapter);
-
-            idDropDown.setOnItemClickListener((parent, view, position, id) -> {
-                docId = docIdList.get(position);
-                initBanner(bannerList.get(position));
-            });
-        });
+        docId = getIntent().getStringExtra("documentId");
+        if (docId == null) {
+            Toast.makeText(this, "Banner ID not found", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+        loadBannerDetails();
     }
 
     private void pickImage() {
@@ -101,19 +95,17 @@ public class ModifyBannerActivity extends AppCompatActivity {
         startActivityForResult(intent, 101);
     }
 
-    private void initDropDown(MyCallback myCallback) {
-        FirebaseUtil.getBanner().orderBy("bannerId").get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        List<BannerModel> banners = new ArrayList<>();
-                        List<String> docIds = new ArrayList<>();
-                        for (QueryDocumentSnapshot doc : task.getResult()) {
-                            banners.add(doc.toObject(BannerModel.class));
-                            docIds.add(doc.getId());
-                        }
-                        myCallback.onCallback(banners, docIds);
-                    }
-                });
+    private void loadBannerDetails() {
+        FirebaseUtil.getBanner().document(docId).get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                BannerModel banner = task.getResult().toObject(BannerModel.class);
+                if (banner != null) {
+                    initBanner(banner);
+                }
+            } else {
+                Toast.makeText(context, "Failed to load banner details.", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void initBanner(BannerModel model) {
@@ -238,7 +230,5 @@ public class ModifyBannerActivity extends AppCompatActivity {
         }
     }
 
-    public interface MyCallback {
-        void onCallback(List<BannerModel> banners, List<String> docIds);
-    }
+
 }
