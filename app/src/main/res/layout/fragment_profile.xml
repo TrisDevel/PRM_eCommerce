@@ -49,18 +49,37 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Manage Wallet Button -->
+
+    <!-- Hướng dẫn sử dụng -->
     <Button
-        android:id="@+id/manageWalletBtn"
+        android:id="@+id/helpBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="12dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="4dp"
         android:padding="12dp"
-        android:text="Manage Wallet"
+        android:text="Hướng dẫn sử dụng"
         android:textAllCaps="false"
         android:textColor="@color/white"
         android:textSize="16sp"
         android:textStyle="bold" />
+
+    <!-- Exit App -->
+    <Button
+        android:id="@+id/exitAppBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="12dp"
+        android:padding="12dp"
+        android:text="Thoát ứng dụng"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:backgroundTint="@color/red" />
 
     <!-- Orders Label -->
     <TextView
