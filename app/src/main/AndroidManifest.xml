@@ -122,6 +122,10 @@
             android:exported="false"
             android:theme="@style/Admin.Theme.ECom" />
 
+        <activity android:name=".activities.SendNotificationActivity"
+            android:screenOrientation="portrait"
+            android:exported="false"
+            android:theme="@style/Admin.Theme.ECom" />
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />
