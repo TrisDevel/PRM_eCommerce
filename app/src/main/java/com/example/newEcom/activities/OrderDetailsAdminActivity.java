@@ -53,6 +53,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
     androidx.cardview.widget.CardView commentsLayout;
 
     int orderId;
+    String userId; // ✅ User ID để query items
     String customerName, email, phone, address, status, paymentMethod, transactionId, comments;
     int totalAmount, itemCount;
     long timestampSeconds;
@@ -145,6 +146,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
     private void getIntentData() {
         try {
             orderId = getIntent().getIntExtra("orderId", 0);
+            userId = getIntent().getStringExtra("userId"); // ✅ Nhận userId từ Intent
             customerName = getIntent().getStringExtra("customerName");
             email = getIntent().getStringExtra("email");
             phone = getIntent().getStringExtra("phone");
@@ -156,6 +158,9 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
             itemCount = getIntent().getIntExtra("itemCount", 0);
             timestampSeconds = getIntent().getLongExtra("timestamp", 0);
             comments = getIntent().getStringExtra("comments");
+            
+            // ✅ Log để debug
+            Log.d(TAG, "Received Intent data - orderId: " + orderId + ", userId: " + userId);
             
         } catch (Exception e) {
             Log.e(TAG, "Error getting intent data: " + e.getMessage(), e);
@@ -219,8 +224,9 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
 
 
     /**
-     *LOAD ORDER ITEMS TỪ FIRESTORE
-     * Lấy danh sách sản phẩm trong order này
+     * ✅ LOAD ORDER ITEMS TỪ FIRESTORE (FIXED VERSION)
+     * Lấy danh sách sản phẩm trong order này bằng cách query trực tiếp path
+     * Path: orders/{userId}/ordersList/{orderId}/items
      */
     private void loadOrderItems() {
         try {
@@ -229,7 +235,7 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
             orderItemsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
             orderItemsRecyclerView.setAdapter(orderItemAdapter);
             
-            //Kiểm tra itemCount trước khi query
+            // ✅ Kiểm tra itemCount trước khi query
             if (itemCount == 0) {
                 Log.w(TAG, "Order has 0 items. Skipping Firestore query.");
                 orderItemsRecyclerView.setVisibility(View.GONE);
@@ -237,56 +243,122 @@ public class OrderDetailsAdminActivity extends AppCompatActivity {
                 return;
             }
             
-            // Query Firestore để lấy order items
-            //Sửa lỗi: Query collection group "ordersList" để tìm đúng document cha,
-            // sau đó mới lấy collection "items" con.
+            // ✅ Kiểm tra userId có hợp lệ không
+            if (userId == null || userId.isEmpty()) {
+                Log.e(TAG, "userId is null or empty. Cannot load items. Falling back to collection group query...");
+                loadOrderItemsFallback(); // Fallback về phương pháp cũ
+                return;
+            }
+            
+            // ✅ Query trực tiếp với path đầy đủ
+            String firebasePath = "orders/" + userId + "/ordersList/" + orderId + "/items";
+            Log.d(TAG, "Loading order items from path: " + firebasePath);
+            
             FirebaseFirestore.getInstance()
-                    .collectionGroup("ordersList")
-                    .whereEqualTo("orderId", orderId)
-                    .limit(1) // Chỉ cần tìm 1 order summary duy nhất
+                    .collection("orders")
+                    .document(userId)
+                    .collection("ordersList")
+                    .document(String.valueOf(orderId))
+                    .collection("items")
                     .get()
                     .addOnCompleteListener(task -> {
-                        if (task.isSuccessful() && task.getResult() != null && !task.getResult().isEmpty()) {
-                            // Lấy document cha (order summary)
-                            QueryDocumentSnapshot orderSummaryDoc = (QueryDocumentSnapshot) task.getResult().getDocuments().get(0);
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            orderItems.clear();
                             
-                            // Lấy collection "items" từ document cha
-                            orderSummaryDoc.getReference().collection("items").get()
-                                    .addOnCompleteListener(itemsTask -> {
-                                        if (itemsTask.isSuccessful() && itemsTask.getResult() != null) {
-                                            orderItems.clear();
-                                            
-                                            if (itemsTask.getResult().isEmpty()) {
-                                                Log.w(TAG, "No items found in subcollection");
-                                                orderItemsRecyclerView.setVisibility(View.GONE);
-                                                emptyItemsText.setVisibility(View.VISIBLE);
-                                                return;
-                                            }
-                                            
-                                            for (QueryDocumentSnapshot document : itemsTask.getResult()) {
-                                                try {
-                                                    OrderItemModel item = document.toObject(OrderItemModel.class);
-                                                    orderItems.add(item);
-                                                } catch (Exception e) {
-                                                    Log.e(TAG, "Error parsing order item: " + e.getMessage(), e);
-                                                }
-                                            }
-                                            orderItemAdapter.notifyDataSetChanged();
-                                        } else {
-                                            Log.e(TAG, "Error loading order items", itemsTask.getException());
-                                            Toast.makeText(OrderDetailsAdminActivity.this, "Failed to load order items", Toast.LENGTH_SHORT).show();
-                                        }
-                                    });
+                            if (task.getResult().isEmpty()) {
+                                Log.w(TAG, "No items found in subcollection: " + firebasePath);
+                                orderItemsRecyclerView.setVisibility(View.GONE);
+                                emptyItemsText.setVisibility(View.VISIBLE);
+                                return;
+                            }
+                            
+                            // ✅ Parse items
+                            Log.d(TAG, "Found " + task.getResult().size() + " items");
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                try {
+                                    OrderItemModel item = document.toObject(OrderItemModel.class);
+                                    orderItems.add(item);
+                                    Log.d(TAG, "Loaded item: " + item.getName() + " (qty: " + item.getQuantity() + ")");
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error parsing order item: " + e.getMessage(), e);
+                                }
+                            }
+                            
+                            // ✅ Update UI
+                            orderItemAdapter.notifyDataSetChanged();
+                            orderItemsRecyclerView.setVisibility(View.VISIBLE);
+                            emptyItemsText.setVisibility(View.GONE);
+                            
+                            Log.d(TAG, "Successfully loaded " + orderItems.size() + " items");
+                            
                         } else {
-                            Log.e(TAG, "Error finding order summary for items", task.getException());
-                            Toast.makeText(OrderDetailsAdminActivity.this, "Could not find order to load items.", Toast.LENGTH_SHORT).show();
+                            Log.e(TAG, "Error loading order items from path: " + firebasePath, task.getException());
+                            Toast.makeText(OrderDetailsAdminActivity.this, 
+                                    "Failed to load order items: " + (task.getException() != null ? task.getException().getMessage() : "Unknown error"), 
+                                    Toast.LENGTH_SHORT).show();
+                            
+                            orderItemsRecyclerView.setVisibility(View.GONE);
+                            emptyItemsText.setVisibility(View.VISIBLE);
                         }
                     });
                     
         } catch (Exception e) {
             Log.e(TAG, "Error in loadOrderItems: " + e.getMessage(), e);
             Toast.makeText(this, "Error loading items: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            orderItemsRecyclerView.setVisibility(View.GONE);
+            emptyItemsText.setVisibility(View.VISIBLE);
         }
+    }
+    
+    /**
+     * ✅ FALLBACK METHOD - Dùng collection group query nếu userId null
+     * Giữ lại logic cũ để đảm bảo backward compatibility
+     */
+    private void loadOrderItemsFallback() {
+        Log.w(TAG, "Using fallback collection group query method");
+        
+        FirebaseFirestore.getInstance()
+                .collectionGroup("ordersList")
+                .whereEqualTo("orderId", orderId)
+                .limit(1)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null && !task.getResult().isEmpty()) {
+                        QueryDocumentSnapshot orderSummaryDoc = (QueryDocumentSnapshot) task.getResult().getDocuments().get(0);
+                        
+                        orderSummaryDoc.getReference().collection("items").get()
+                                .addOnCompleteListener(itemsTask -> {
+                                    if (itemsTask.isSuccessful() && itemsTask.getResult() != null) {
+                                        orderItems.clear();
+                                        
+                                        if (itemsTask.getResult().isEmpty()) {
+                                            Log.w(TAG, "No items found in subcollection (fallback)");
+                                            orderItemsRecyclerView.setVisibility(View.GONE);
+                                            emptyItemsText.setVisibility(View.VISIBLE);
+                                            return;
+                                        }
+                                        
+                                        for (QueryDocumentSnapshot document : itemsTask.getResult()) {
+                                            try {
+                                                OrderItemModel item = document.toObject(OrderItemModel.class);
+                                                orderItems.add(item);
+                                            } catch (Exception e) {
+                                                Log.e(TAG, "Error parsing order item (fallback): " + e.getMessage(), e);
+                                            }
+                                        }
+                                        orderItemAdapter.notifyDataSetChanged();
+                                        orderItemsRecyclerView.setVisibility(View.VISIBLE);
+                                        emptyItemsText.setVisibility(View.GONE);
+                                    } else {
+                                        Log.e(TAG, "Error loading order items (fallback)", itemsTask.getException());
+                                        Toast.makeText(OrderDetailsAdminActivity.this, "Failed to load order items", Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                    } else {
+                        Log.e(TAG, "Error finding order summary for items (fallback)", task.getException());
+                        Toast.makeText(OrderDetailsAdminActivity.this, "Could not find order to load items.", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
 

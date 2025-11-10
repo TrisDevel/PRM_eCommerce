@@ -152,6 +152,7 @@ public class AdminOrderAdapter extends RecyclerView.Adapter<AdminOrderAdapter.Ad
         holder.cardView.setOnClickListener(v -> {
             Intent intent = new Intent(context, OrderDetailsAdminActivity.class);
             intent.putExtra("orderId", order.getOrderId());
+            intent.putExtra("userId", order.getUserId()); // ✅ Truyền userId
             intent.putExtra("customerName", order.getFullName());
             intent.putExtra("email", order.getEmail());
             intent.putExtra("phone", order.getPhoneNumber());
