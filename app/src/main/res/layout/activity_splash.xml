@@ -25,7 +25,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:text="Welcome to ShopEase"
+            android:text="Welcome to ShopGent"
             android:textColor="@color/my_primary"
             android:textSize="24sp"
             android:textStyle="bold" />

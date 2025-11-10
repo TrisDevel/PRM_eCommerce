@@ -8,6 +8,8 @@ public class OrderItemModel {
     private int price, quantity;
     private Timestamp timestamp;
     private String fullName, email, phoneNumber, address, comments;
+    private String transactionId;  // ✅ MoMo transaction ID
+    private String paymentMethod;  // ✅ COD, MOMO, ZALOPAY
 
     public OrderItemModel() {
     }
@@ -121,5 +123,23 @@ public class OrderItemModel {
 
     public void setComments(String comments) {
         this.comments = comments;
+    }
+
+    // ✅ GETTER/SETTER CHO TRANSACTION ID
+    public String getTransactionId() {
+        return transactionId;
+    }
+    
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
+    }
+    
+    // ✅ GETTER/SETTER CHO PAYMENT METHOD
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+    
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 }

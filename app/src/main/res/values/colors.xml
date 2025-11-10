@@ -5,13 +5,13 @@
     <color name="light_grey">#DFDFDF</color>
     <color name="grey">#A09F9F</color>
 
-    <color name="my_primary">#EA6D35</color>
-    <color name="backgroundPrimary">#ffead5</color>
+    <color name="my_primary">#2B4593</color>
+    <color name="backgroundPrimary">#E6E2C5</color>
 
-    <color name="my_secondary">#3b608c</color>
-    <color name="backgroundSecondary">#f0f8ff</color>
+    <color name="my_secondary">#434D59</color>
+    <color name="backgroundSecondary">#E1D9CC</color>
 
-    <color name="light_blue">#9FE7F5</color>
+    <color name="light_blue">#6082B6</color>
     <color name="new1">#abdbe3</color>
 
 </resources>

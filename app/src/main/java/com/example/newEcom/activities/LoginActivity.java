@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
@@ -27,6 +28,8 @@ import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 public class LoginActivity extends AppCompatActivity {
     private static final int RC_GOOGLE = 101;
@@ -45,12 +48,12 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        progressBar     = findViewById(R.id.progress_bar);
-        emailEditText   = findViewById(R.id.emailEditText);
-        passEditText    = findViewById(R.id.passEditText);
-        loginBtn        = findViewById(R.id.loginBtn);
-        signupPageBtn   = findViewById(R.id.signupPageBtn);
-        googleLoginBtn  = findViewById(R.id.googleLoginBtn);
+        progressBar = findViewById(R.id.progress_bar);
+        emailEditText = findViewById(R.id.emailEditText);
+        passEditText = findViewById(R.id.passEditText);
+        loginBtn = findViewById(R.id.loginBtn);
+        signupPageBtn = findViewById(R.id.signupPageBtn);
+        googleLoginBtn = findViewById(R.id.googleLoginBtn);
 
         auth = FirebaseAuth.getInstance();
 
@@ -68,7 +71,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private void loginUser() {
         String email = emailEditText.getText().toString();
-        String pass  = passEditText.getText().toString();
+        String pass = passEditText.getText().toString();
         if (!validate(email, pass)) return;
 
         changeInProgress(true);
@@ -77,6 +80,7 @@ public class LoginActivity extends AppCompatActivity {
                     changeInProgress(false);
                     if (task.isSuccessful()) {
                         // KHÔNG điều hướng Admin/Main ở đây!
+                        saveUserFcmToken();
                         goToSplash();
                     } else {
                         Toast.makeText(LoginActivity.this, "Email hoặc mật khẩu sai.", Toast.LENGTH_SHORT).show();
@@ -123,15 +127,15 @@ public class LoginActivity extends AppCompatActivity {
                 });
     }
 
-    private void changeInProgress(boolean inProgress){
+    private void changeInProgress(boolean inProgress) {
         progressBar.setVisibility(inProgress ? View.VISIBLE : View.GONE);
         loginBtn.setEnabled(!inProgress);
         googleLoginBtn.setEnabled(!inProgress);
     }
 
-    private boolean validate(String email, String pass){
+    private boolean validate(String email, String pass) {
         boolean ok = true;
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()){
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             emailEditText.setError("Email không hợp lệ");
             ok = false;
         }
@@ -147,5 +151,31 @@ public class LoginActivity extends AppCompatActivity {
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(i);
         finish();
+    }
+
+    private void saveUserFcmToken() {
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        String token = task.getResult();
+                        String uid = auth.getCurrentUser().getUid();
+                        Log.d("FCM_TOKEN", "User token: " + token);
+
+                        FirebaseFirestore.getInstance()
+                                .collection("user")
+                                .document(uid)
+                                .update("fcmToken", token)
+                                .addOnSuccessListener(aVoid -> {
+                                })
+                                .addOnFailureListener(e -> {
+                                    FirebaseFirestore.getInstance()
+                                            .collection("user")
+                                            .document(uid)
+                                            .set(new java.util.HashMap<String, Object>() {{
+                                                put("fcmToken", token);
+                                            }}, com.google.firebase.firestore.SetOptions.merge());
+                                });
+                    }
+                });
     }
 }
