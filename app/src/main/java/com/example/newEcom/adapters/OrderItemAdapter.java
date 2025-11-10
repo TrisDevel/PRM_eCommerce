@@ -37,6 +37,11 @@ public class OrderItemAdapter extends RecyclerView.Adapter<OrderItemAdapter.Orde
     @Override
     public OrderItemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(context).inflate(R.layout.item_order_item_adapter, parent, false);
+        
+        // ✅ FIX: Set background color programmatically to avoid theme override
+        androidx.cardview.widget.CardView cardView = (androidx.cardview.widget.CardView) view;
+        cardView.setCardBackgroundColor(context.getResources().getColor(R.color.white));
+        
         return new OrderItemViewHolder(view);
     }
 

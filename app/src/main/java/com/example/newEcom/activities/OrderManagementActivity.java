@@ -178,6 +178,19 @@ public class OrderManagementActivity extends AppCompatActivity {
                             for (QueryDocumentSnapshot document : task.getResult()) {
                                 try {
                                     OrderModel order = document.toObject(OrderModel.class);
+                                    
+                                    // ✅ Extract userId from document path
+                                    // Path format: orders/{userId}/ordersList/{orderId}
+                                    String documentPath = document.getReference().getPath();
+                                    String[] pathParts = documentPath.split("/");
+                                    if (pathParts.length >= 2) {
+                                        String userId = pathParts[1]; // orders/{userId}/...
+                                        order.setUserId(userId);
+                                        Log.d(TAG, "Extracted userId: " + userId + " for orderId: " + order.getOrderId());
+                                    } else {
+                                        Log.w(TAG, "Could not extract userId from path: " + documentPath);
+                                    }
+                                    
                                     allOrders.add(order);
                                 } catch (Exception e) {
                                     Log.e(TAG, "Error parsing order document: " + e.getMessage());

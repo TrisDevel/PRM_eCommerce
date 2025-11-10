@@ -8,6 +8,7 @@ import com.google.firebase.Timestamp;
  */
 public class OrderModel {
     private int orderId;
+    private String userId;              // ✅ User ID - extracted from document path
     private String status;              // "Pending", "Confirmed", "Shipping", "Delivered", "Cancelled"
     private String transactionId;       // Transaction ID từ payment gateway
     private String paymentMethod;       // "COD", "MOMO", "ZALOPAY"
@@ -137,6 +138,15 @@ public class OrderModel {
 
     public void setComments(String comments) {
         this.comments = comments;
+    }
+
+    // ✅ GETTER/SETTER CHO USER ID
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 }
 

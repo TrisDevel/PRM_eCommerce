@@ -34,4 +34,7 @@
         <item name="android:windowActivityTransitions">true</item>
         <item name="android:windowExitTransition">@transition/exit_anim</item>
     </style>
+    <style name="RoundedSquare">
+        <item name="cornerSize">8dp</item>
+    </style>
 </resources>
