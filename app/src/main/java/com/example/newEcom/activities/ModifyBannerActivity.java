@@ -1,18 +1,14 @@
 package com.example.newEcom.activities;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Color;
-import android.net.Uri;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -20,12 +16,8 @@ import android.widget.Toast;
 import com.example.newEcom.R;
 import com.example.newEcom.model.BannerModel;
 import com.example.newEcom.utils.FirebaseUtil;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 import java.util.ArrayList;
@@ -35,20 +27,16 @@ import cn.pedant.SweetAlert.SweetAlertDialog;
 public class ModifyBannerActivity extends AppCompatActivity {
 
     LinearLayout detailsLinearLayout;
-    TextInputEditText descEditText;
-    Button imageBtn, modifyBannerBtn;
+    TextInputEditText descEditText, imageBtn; // imageBtn giờ là input URL
+    AutoCompleteTextView idDropDown, statusDropDown;
+    ArrayAdapter<String> idAdapter, statusAdapter;
     ImageView backBtn, bannerImageView;
     TextView removeImageBtn;
 
-    AutoCompleteTextView idDropDown, statusDropDown;
-    ArrayAdapter<String> idAdapter, statusAdapter;
     BannerModel currBanner;
-    String status, docId, bannerImage;
-    Uri imageUri;
+    String status, docId, bannerImageUrl;
     int bannerId;
     Context context = this;
-    boolean imageUploaded = true;
-
     SweetAlertDialog dialog;
 
     @Override
@@ -59,135 +47,109 @@ public class ModifyBannerActivity extends AppCompatActivity {
         // --- Init views ---
         detailsLinearLayout = findViewById(R.id.detailsLinearLayout);
         idDropDown = findViewById(R.id.idDropDown);
-        idDropDown.setVisibility(View.GONE);
         descEditText = findViewById(R.id.descriptionEditText);
+        imageBtn = findViewById(R.id.imageBtn); // input URL
         statusDropDown = findViewById(R.id.statusDropDown);
         bannerImageView = findViewById(R.id.bannerImageView);
-        imageBtn = findViewById(R.id.imageBtn);
-        modifyBannerBtn = findViewById(R.id.modifyBannerBtn);
         backBtn = findViewById(R.id.backBtn);
         removeImageBtn = findViewById(R.id.removeImageBtn);
 
         dialog = new SweetAlertDialog(this, SweetAlertDialog.PROGRESS_TYPE);
         dialog.getProgressHelper().setBarColor(Color.parseColor("#A5DC86"));
-        dialog.setTitleText("Uploading image...");
+        dialog.setTitleText("Loading...");
         dialog.setCancelable(false);
 
-        // --- Click listeners ---
         backBtn.setOnClickListener(v -> onBackPressed());
-        imageBtn.setOnClickListener(v -> pickImage());
         removeImageBtn.setOnClickListener(v -> removeImage());
-        modifyBannerBtn.setOnClickListener(v -> updateToFirebase());
 
-        docId = getIntent().getStringExtra("documentId");
-        if (docId == null) {
-            Toast.makeText(this, "Banner ID not found", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
-        loadBannerDetails();
-    }
+        initDropDown((bannerList, docIdList) -> {
+            String[] ids = new String[bannerList.size()];
+            for (int i = 0; i < bannerList.size(); i++)
+                ids[i] = Integer.toString(bannerList.get(i).getBannerId());
 
-    private void pickImage() {
-        Intent intent = new Intent();
-        intent.setAction(Intent.ACTION_GET_CONTENT);
-        intent.setType("image/*");
-        startActivityForResult(intent, 101);
-    }
+            idAdapter = new ArrayAdapter<>(context, R.layout.dropdown_item, ids);
+            idDropDown.setAdapter(idAdapter);
 
-    private void loadBannerDetails() {
-        FirebaseUtil.getBanner().document(docId).get().addOnCompleteListener(task -> {
-            if (task.isSuccessful() && task.getResult() != null) {
-                BannerModel banner = task.getResult().toObject(BannerModel.class);
-                if (banner != null) {
-                    initBanner(banner);
+            idDropDown.setOnItemClickListener((parent, view, position, id) -> {
+                docId = docIdList.get(position);
+                initBanner(bannerList.get(position));
+            });
+        });
+
+        // --- Khi người dùng nhập URL ảnh ---
+        imageBtn.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) { }
+            @Override
+            public void afterTextChanged(Editable s) {
+                String url = s.toString().trim();
+                if (!url.isEmpty()) {
+                    loadImage(url);
+                } else {
+                    bannerImageView.setVisibility(View.GONE);
+                    removeImageBtn.setVisibility(View.GONE);
                 }
-            } else {
-                Toast.makeText(context, "Failed to load banner details.", Toast.LENGTH_SHORT).show();
             }
         });
+
+        findViewById(R.id.modifyBannerBtn).setOnClickListener(v -> updateToFirebase());
+    }
+
+    private void initDropDown(MyCallback myCallback) {
+        FirebaseUtil.getBanner().orderBy("bannerId").get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        List<BannerModel> banners = new ArrayList<>();
+                        List<String> docIds = new ArrayList<>();
+                        for (QueryDocumentSnapshot doc : task.getResult()) {
+                            banners.add(doc.toObject(BannerModel.class));
+                            docIds.add(doc.getId());
+                        }
+                        myCallback.onCallback(banners, docIds);
+                    }
+                });
     }
 
     private void initBanner(BannerModel model) {
         currBanner = model;
         bannerId = currBanner.getBannerId();
 
-        // Load image
-        Picasso.get().load(currBanner.getBannerImage()).into(bannerImageView);
-
-        // Show details layout
         detailsLinearLayout.setVisibility(View.VISIBLE);
-        bannerImageView.setVisibility(View.VISIBLE);
-        removeImageBtn.setVisibility(View.VISIBLE);
 
         descEditText.setText(currBanner.getDescription());
+        imageBtn.setText(currBanner.getBannerImage()); // hiển thị URL hiện tại
+        loadImage(currBanner.getBannerImage());
 
         // --- Status dropdown ---
-        String[] statusOptions = {"Live", "Not Live"};
+        String[] statusOptions = {"Active", "Inactive"};
         statusAdapter = new ArrayAdapter<>(context, R.layout.dropdown_item, statusOptions);
         statusDropDown.setAdapter(statusAdapter);
 
-        // Set default value
-        if(currBanner.getStatus().equals("Active") || currBanner.getStatus().equals("Inactive")){
-            statusDropDown.setText(currBanner.getStatus(), false); // false = không trigger filter
-        }
-
+        statusDropDown.setText(currBanner.getStatus(), false);
         statusDropDown.setOnItemClickListener((parent, view, position, id) -> {
             status = parent.getItemAtPosition(position).toString();
             Toast.makeText(context, "Selected: " + status, Toast.LENGTH_SHORT).show();
         });
     }
 
-    private void updateToFirebase() {
-        if (!validate()) return;
-
-        SweetAlertDialog dialog = new SweetAlertDialog(this, SweetAlertDialog.PROGRESS_TYPE);
-        dialog.getProgressHelper().setBarColor(Color.parseColor("#A5DC86"));
-        dialog.setTitleText("Loading...");
-        dialog.setCancelable(false);
+    private void loadImage(String url) {
         dialog.show();
-
-        if (imageUri != null) {
-            FirebaseUtil.getBannerImageReference(bannerId + "").putFile(imageUri)
-                    .addOnCompleteListener(t -> FirebaseUtil.getBannerImageReference(bannerId + "").getDownloadUrl()
-                            .addOnSuccessListener(uri -> {
-                                bannerImage = uri.toString();
-                                FirebaseUtil.getBanner().document(docId).update("bannerImage", bannerImage);
-                                updateDataToFirebase();
-                                dialog.dismiss();
-                                Toast.makeText(context, "Banner modified successfully!", Toast.LENGTH_SHORT).show();
-                                finish();
-                            }));
-        } else {
-            updateDataToFirebase();
-            dialog.dismiss();
-            Toast.makeText(context, "Banner modified successfully!", Toast.LENGTH_SHORT).show();
-            finish();
-        }
-    }
-
-    void updateDataToFirebase() {
-        if (!descEditText.getText().toString().equals(currBanner.getDescription()))
-            FirebaseUtil.getBanner().document(docId).update("description", descEditText.getText().toString());
-        if (!statusDropDown.getText().toString().equals(currBanner.getStatus()))
-            FirebaseUtil.getBanner().document(docId).update("status", statusDropDown.getText().toString());
-    }
-
-    private boolean validate() {
-        boolean isValid = true;
-        if (statusDropDown.getText().toString().trim().isEmpty()) {
-            statusDropDown.setError("Status is required");
-            isValid = false;
-        }
-        if (descEditText.getText().toString().trim().isEmpty()) {
-            descEditText.setError("Description is required");
-            isValid = false;
-        }
-        if (!imageUploaded) {
-            Toast.makeText(context, "Image is not selected", Toast.LENGTH_SHORT).show();
-            isValid = false;
-        }
-        return isValid;
+        Picasso.get().load(url).into(bannerImageView, new Callback() {
+            @Override
+            public void onSuccess() {
+                dialog.dismiss();
+                bannerImageView.setVisibility(View.VISIBLE);
+                removeImageBtn.setVisibility(View.VISIBLE);
+                bannerImageUrl = url;
+            }
+            @Override
+            public void onError(Exception e) {
+                dialog.dismiss();
+                Toast.makeText(context, "Invalid image URL", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void removeImage() {
@@ -198,7 +160,8 @@ public class ModifyBannerActivity extends AppCompatActivity {
                 .setConfirmText("Yes")
                 .setCancelText("No")
                 .setConfirmClickListener(dialog -> {
-                    imageUploaded = false;
+                    bannerImageUrl = null;
+                    imageBtn.setText("");
                     bannerImageView.setImageDrawable(null);
                     bannerImageView.setVisibility(View.GONE);
                     removeImageBtn.setVisibility(View.GONE);
@@ -206,29 +169,41 @@ public class ModifyBannerActivity extends AppCompatActivity {
                 }).show();
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+    private void updateToFirebase() {
+        if (!validate()) return;
 
-        if (requestCode == 101 && data != null && data.getData() != null) {
-            imageUri = data.getData();
-            imageUploaded = true;
-            dialog.show();
+        dialog.show();
 
-            Picasso.get().load(imageUri).into(bannerImageView, new Callback() {
-                @Override
-                public void onSuccess() {
-                    dialog.dismiss();
-                }
+        if (!imageBtn.getText().toString().equals(currBanner.getBannerImage()))
+            FirebaseUtil.getBanner().document(docId).update("bannerImage", imageBtn.getText().toString());
+        if (!descEditText.getText().toString().equals(currBanner.getDescription()))
+            FirebaseUtil.getBanner().document(docId).update("description", descEditText.getText().toString());
+        if (!statusDropDown.getText().toString().equals(currBanner.getStatus()))
+            FirebaseUtil.getBanner().document(docId).update("status", statusDropDown.getText().toString());
 
-                @Override
-                public void onError(Exception e) { }
-            });
-
-            bannerImageView.setVisibility(View.VISIBLE);
-            removeImageBtn.setVisibility(View.VISIBLE);
-        }
+        dialog.dismiss();
+        Toast.makeText(context, "Banner updated successfully!", Toast.LENGTH_SHORT).show();
+        finish();
     }
 
+    private boolean validate() {
+        boolean valid = true;
+        if (descEditText.getText().toString().trim().isEmpty()) {
+            descEditText.setError("Description required");
+            valid = false;
+        }
+        if (statusDropDown.getText().toString().trim().isEmpty()) {
+            statusDropDown.setError("Status required");
+            valid = false;
+        }
+        if (imageBtn.getText().toString().trim().isEmpty()) {
+            imageBtn.setError("Image URL required");
+            valid = false;
+        }
+        return valid;
+    }
 
+    public interface MyCallback {
+        void onCallback(List<BannerModel> banners, List<String> docIds);
+    }
 }
