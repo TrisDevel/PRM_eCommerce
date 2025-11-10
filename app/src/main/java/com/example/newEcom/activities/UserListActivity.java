@@ -24,6 +24,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.mancj.materialsearchbar.MaterialSearchBar;
 import com.mancj.materialsearchbar.SimpleOnSearchActionListener;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -105,24 +106,28 @@ public class UserListActivity extends AppCompatActivity {
         allUsersChip.setOnClickListener(v -> {
             setActiveChip(allUsersChip);
             currentFilter = "all";
+            sortText.setText("Sort by: Name");
             applyFilter();
         });
 
         activeUsersChip.setOnClickListener(v -> {
             setActiveChip(activeUsersChip);
             currentFilter = "active";
+            sortText.setText("Sort by: Active");
             applyFilter();
         });
 
         adminUsersChip.setOnClickListener(v -> {
             setActiveChip(adminUsersChip);
             currentFilter = "admin";
+            sortText.setText("Sort by: Admin");
             applyFilter();
         });
 
         newUsersChip.setOnClickListener(v -> {
             setActiveChip(newUsersChip);
             currentFilter = "new";
+            sortText.setText("Sort by: New");
             applyFilter();
         });
     }
@@ -133,14 +138,56 @@ public class UserListActivity extends AppCompatActivity {
         usersRecyclerView.setAdapter(userAdapter);
     }
 
+    // Load danh sách users từ Firebase Firestore
     private void loadUsers() {
-        // For demo purposes, show empty state
-        // In a real app, you would load user data from your backend
+        // Xóa dữ liệu cũ
         allUsers.clear();
         filteredUsers.clear();
         userAdapter.notifyDataSetChanged();
-        updateUserCount();
-        checkEmptyState();
+        
+        // Lấy dữ liệu từ Firestore collection "users"
+        FirebaseUtil.getUsers()
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            // Xóa danh sách cũ
+                            allUsers.clear();
+                            
+                            // Duyệt qua tất cả documents và chuyển thành UserModel
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                try {
+                                    UserModel user = document.toObject(UserModel.class);
+                                    // Đảm bảo uid được set từ document ID
+                                    if (user.getUid() == null || user.getUid().isEmpty()) {
+                                        user.setUid(document.getId());
+                                    }
+                                    allUsers.add(user);
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error parsing user document: " + e.getMessage());
+                                }
+                            }
+                            
+                            // Áp dụng filter hiện tại
+                            applyFilter();
+                            
+                            Log.d(TAG, "Loaded " + allUsers.size() + " users from Firestore");
+                        } else {
+                            // Xử lý lỗi khi load dữ liệu
+                            Log.e(TAG, "Error loading users", task.getException());
+                            Toast.makeText(UserListActivity.this, 
+                                    "Failed to load users", 
+                                    Toast.LENGTH_SHORT).show();
+                            
+                            // Hiển thị empty state
+                            filteredUsers.clear();
+                            userAdapter.notifyDataSetChanged();
+                            updateUserCount();
+                            checkEmptyState();
+                        }
+                    }
+                });
     }
 
     private void filterUsers(String searchText) {
@@ -223,6 +270,13 @@ public class UserListActivity extends AppCompatActivity {
     private void hideEmptyState() {
         emptyStateLayout.setVisibility(View.GONE);
         usersRecyclerView.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh danh sách users khi quay lại activity
+        loadUsers();
     }
 
     @Override

@@ -41,10 +41,11 @@
 
             <ImageView
                 android:id="@+id/editBtn"
+                android:visibility="gone"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
                 android:layout_gravity="center_vertical"
-                android:src="@drawable/ic_profile"
+                android:src="@drawable/ic_edit"
                 app:tint="@color/white" />
 
         </LinearLayout>
@@ -389,27 +390,26 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/editUserBtn"
+                    style="@style/Widget.MaterialComponents.Button"
                     android:layout_width="0dp"
-                    android:layout_height="50dp"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
-                    android:background="@drawable/quantity_white_background"
                     android:text="Edit User"
-                    android:textColor="@color/my_secondary"
-                    android:textStyle="bold" />
+                    android:textColor="@color/white"
+                    app:backgroundTint="#FFA500" />
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/blockUserBtn"
+                    style="@style/Widget.MaterialComponents.Button"
                     android:layout_width="0dp"
-                    android:layout_height="50dp"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
-                    android:background="@drawable/quantity_white_background"
                     android:text="Block User"
-                    android:textColor="@color/my_secondary"
-                    android:textStyle="bold" />
+                    android:textColor="@color/white" />
 
             </LinearLayout>
 

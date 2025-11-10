@@ -15,10 +15,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ECom"
         android:usesCleartextTraffic="true"
+        android:enableOnBackInvokedCallback="true"
         tools:targetApi="31">
         <activity
             android:name=".activities.WalletActivity"
-            android:exported="false" />
+            android:exported="false" >
         </activity>
         <activity
             android:name=".activities.PaymentResultActivity"
@@ -120,9 +121,42 @@
             android:name=".activities.UserDetailsActivity"
             android:screenOrientation="portrait"
             android:exported="false"
+            android:theme="@style/Admin.Theme.ECom" />
+        <activity
+            android:name=".activities.OrderManagementActivity"
+            android:screenOrientation="portrait"
+            android:exported="false"
+            android:theme="@style/Admin.Theme.ECom" />
+        <activity
+            android:name=".activities.OrderDetailsAdminActivity"
+            android:screenOrientation="portrait"
+            android:exported="false"
+            android:theme="@style/Admin.Theme.ECom" />
+
+        <activity
+            android:name=".activities.ProductListAdminActivity"
+            android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@style/Admin.Theme.ECom" />
 
+        <activity
+            android:name=".activities.CategoryListAdminActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Admin.Theme.ECom" />
+
+        <activity
+            android:name=".activities.BannerListAdminActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Admin.Theme.ECom" />
+
+        <activity android:name=".activities.HelpActivity" />
+
+        <activity android:name=".activities.SendNotificationActivity"
+            android:screenOrientation="portrait"
+            android:exported="false"
+            android:theme="@style/Admin.Theme.ECom" />
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />

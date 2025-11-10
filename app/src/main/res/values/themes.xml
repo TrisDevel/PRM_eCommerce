@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Admin.Theme.ECom" parent="Theme.MaterialComponents.NoActionBar">
+    <style name="Admin.Theme.ECom" parent="Theme.ECom">
         <!-- Customize your light theme here. -->
          <item name="colorPrimary">@color/my_secondary</item>
         <item name="colorPrimaryVariant">@color/my_secondary</item>
@@ -33,5 +33,8 @@
 
         <item name="android:windowActivityTransitions">true</item>
         <item name="android:windowExitTransition">@transition/exit_anim</item>
+    </style>
+    <style name="RoundedSquare">
+        <item name="cornerSize">8dp</item>
     </style>
 </resources>

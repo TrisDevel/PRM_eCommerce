@@ -19,7 +19,13 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.example.newEcom.model.UserModel;
+import com.example.newEcom.utils.FirebaseUtil;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.UserProfileChangeRequest;
+import com.google.firebase.firestore.DocumentReference;
 
 public class SignupActivity extends AppCompatActivity {
     ProgressBar progressBar;
@@ -64,22 +70,67 @@ public class SignupActivity extends AppCompatActivity {
 
         FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
         firebaseAuth.createUserWithEmailAndPassword(email, pass).addOnCompleteListener(this,
-                new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
+                task -> {
+                    if (task.isSuccessful()) {
+                        // Authentication successful, now create user document in Firestore
+                        FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
+                        if (firebaseUser == null) {
+                            changeInProgress(false);
+                            Toast.makeText(SignupActivity.this, "Failed to get user data.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        String fullName = nameEditText.getText().toString();
+
+                        // Create a UserModel object with default values
+                        UserModel userModel = new UserModel(
+                                firebaseUser.getUid(),
+                                email,
+                                fullName,
+                                null, // phoneNumber
+                                null, // address
+                                null, // profileImage
+                                "user", // role
+                                true, // isActive
+                                false, // isEmailVerified
+                                Timestamp.now(), // createdAt
+                                null, // lastLoginAt
+                                0, // totalOrders
+                                0, // totalSpent
+                                null, // preferredLanguage
+                                null  // timezone
+                        );
+
+                        // Save the UserModel to Firestore
+                        FirebaseUtil.getUsers().document(firebaseUser.getUid()).set(userModel)
+                                .addOnSuccessListener(aVoid -> {
+                                    // Firestore write successful
+                                    changeInProgress(false);
+                                    Toast.makeText(SignupActivity.this, "Successfully created account, check email to verify", Toast.LENGTH_SHORT).show();
+
+                                    // Send verification email
+                                    firebaseUser.sendEmailVerification();
+
+                                    // Update DisplayName in Auth (optional but good practice)
+                                    UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder().setDisplayName(fullName).build();
+                                    firebaseUser.updateProfile(profileUpdates);
+
+                                    // Sign out to force user to log in again
+                                    firebaseAuth.signOut();
+                                    finish();
+                                })
+                                .addOnFailureListener(e -> {
+                                    // Firestore write failed
+                                    changeInProgress(false);
+                                    Toast.makeText(SignupActivity.this, "Error: Failed to save user data.", Toast.LENGTH_SHORT).show();
+                                    // Optional: Delete the created auth user to prevent orphaned accounts
+                                    // firebaseUser.delete();
+                                });
+
+                    } else {
+                        // Authentication failed
                         changeInProgress(false);
-                        if (task.isSuccessful()){
-                            Toast.makeText(SignupActivity.this, "Successfully created account, check email to verify", Toast.LENGTH_SHORT).show();
-                            firebaseAuth.getCurrentUser().sendEmailVerification();
-                            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                            UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder().setDisplayName(nameEditText.getText().toString()).build();
-                            user.updateProfile(profileUpdates);
-                            firebaseAuth.signOut();
-                            finish();
-                        }
-                        else {
-                            Toast.makeText(SignupActivity.this, task.getException().getLocalizedMessage(), Toast.LENGTH_SHORT).show();
-                        }
+                        Toast.makeText(SignupActivity.this, task.getException().getLocalizedMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
     }

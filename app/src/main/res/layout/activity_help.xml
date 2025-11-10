@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/backgroundPrimary"
+    android:padding="20dp">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- Tiêu đề chính -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🛍️ HƯỚNG DẪN MUA HÀNG"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:gravity="center"
+            android:paddingBottom="24dp" />
+
+        <!-- Mục lục -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📖 MỤC LỤC"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            android:textSize="15sp"
+            android:lineSpacingExtra="6dp"
+            android:text="
+1️⃣ Xem sản phẩm và danh mục
+2️⃣ Xem chi tiết và đánh giá sản phẩm
+3️⃣ Thêm vào giỏ hàng hoặc danh sách yêu thích
+4️⃣ Thanh toán (Checkout)
+5️⃣ Phương thức thanh toán (ZaloPay, MoMo, COD)
+6️⃣ Xem lịch sử mua hàng
+7️⃣ Đánh giá và bình luận sau khi mua
+" />
+
+        <!-- Phần chi tiết hướng dẫn -->
+        <!-- 1 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1️⃣ XEM SẢN PHẨM VÀ DANH MỤC"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:paddingTop="16dp"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            android:textSize="15sp"
+            android:lineSpacingExtra="8dp"
+            android:text="- Người dùng có thể duyệt qua các sản phẩm có trên shop.\n- Sử dụng thanh **Category** ở đầu trang để chọn danh mục mong muốn (ví dụ: Điện thoại, Laptop, Phụ kiện,...).\n- Các sản phẩm sẽ tự động lọc theo danh mục bạn chọn." />
+
+        <!-- 2 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2️⃣ XEM CHI TIẾT VÀ ĐÁNH GIÁ SẢN PHẨM"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:paddingTop="16dp"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            android:textSize="15sp"
+            android:lineSpacingExtra="8dp"
+            android:text="- Nhấn vào sản phẩm để xem chi tiết: tên, giá, mô tả, hình ảnh, số lượng còn lại.\n- Bên dưới là phần đánh giá và nhận xét của khách hàng đã mua trước đó." />
+
+        <!-- 3 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="3️⃣ THÊM VÀO GIỎ HÀNG HOẶC DANH SÁCH YÊU THÍCH"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:paddingTop="16dp"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            android:textSize="15sp"
+            android:lineSpacingExtra="8dp"
+            android:text="- Chọn **Add to Cart** để thêm sản phẩm vào giỏ hàng.\n- Hoặc chọn **Add to Wishlist** để lưu lại mua sau." />
+
+        <!-- 4 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="4️⃣ THANH TOÁN (CHECKOUT)"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:paddingTop="16dp"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            android:textSize="15sp"
+            android:lineSpacingExtra="8dp"
+            android:text="- Vào trang **Cart** để xem lại sản phẩm đã chọn.\n- Nhấn **Checkout** để thanh toán.\n- Điền đầy đủ thông tin cần thiết:\n  • Họ và tên\n  • Số điện thoại\n  • Email\n  • Địa chỉ nhận hàng\n  • Ghi chú thêm (nếu có)" />
+
+        <!-- 5 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="5️⃣ PHƯƠNG THỨC THANH TOÁN"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:paddingTop="16dp"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            android:textSize="15sp"
+            android:lineSpacingExtra="8dp"
+            android:text="💰 **ZaloPay**:
+- Ứng dụng hiển thị mã QR ZaloPay.
+- Mở app ZaloPay → Quét mã → Xác nhận thanh toán.
+
+💳 **MoMo**:
+- Chọn thanh toán bằng MoMo → App tự mở sang MoMo.
+- Kiểm tra thông tin → Nhấn “Xác nhận”.
+
+🏠 **COD (Thanh toán khi nhận hàng)**:
+- Nhân viên giao hàng thu tiền khi giao đơn hàng." />
+
+        <!-- 6 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="6️⃣ XEM LỊCH SỬ MUA HÀNG"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:paddingTop="16dp"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            android:textSize="15sp"
+            android:lineSpacingExtra="8dp"
+            android:text="- Sau khi thanh toán thành công, vào trang **Profile**.\n- Chọn **Lịch sử mua hàng (Order History)** để xem các đơn đã mua.\n- Nhấn vào từng đơn để xem chi tiết sản phẩm, tổng tiền và trạng thái giao hàng." />
+
+        <!-- 7 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="7️⃣ ĐÁNH GIÁ VÀ BÌNH LUẬN"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:paddingTop="16dp"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            android:textSize="15sp"
+            android:lineSpacingExtra="8dp"
+            android:paddingBottom="24dp"
+            android:text="- Sau khi nhận hàng, người dùng có thể để lại **comment** và **rating** cho sản phẩm.\n- Đánh giá của bạn giúp người mua khác có thêm thông tin hữu ích trước khi quyết định mua." />
+
+    </LinearLayout>
+</ScrollView>

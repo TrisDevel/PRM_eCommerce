@@ -79,9 +79,20 @@ public class CartFragment extends Fragment {
                 Toast.makeText(activity, "Your cart is empty! Add some product in your cart to proceed.", Toast.LENGTH_SHORT).show();
                 return;
             }
-            Intent intent = new Intent(getActivity(), CheckoutActivity.class);
-            intent.putExtra("price", totalPrice);
-            startActivity(intent);
+            // Calculate itemCount (sum of quantities) then open checkout
+            FirebaseUtil.getCartItems().get().addOnCompleteListener(task -> {
+                int itemCount = 0;
+                if (task.isSuccessful() && task.getResult() != null) {
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : task.getResult()) {
+                        Long qty = doc.getLong("quantity");
+                        itemCount += qty != null ? qty.intValue() : 0;
+                    }
+                }
+                Intent intent = new Intent(getActivity(), CheckoutActivity.class);
+                intent.putExtra("price", totalPrice);
+                intent.putExtra("itemCount", itemCount);
+                startActivity(intent);
+            });
         });
 
         backBtn.setOnClickListener(v -> {

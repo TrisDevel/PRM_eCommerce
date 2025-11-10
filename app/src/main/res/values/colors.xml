@@ -14,4 +14,22 @@
     <color name="light_blue">#6082B6</color>
     <color name="new1">#abdbe3</color>
 
+    <!-- ✅ Order Status Colors -->
+    <color name="orange">#FF9800</color>
+    <color name="orange_light">#FFF3E0</color>
+    <color name="blue">#2196F3</color>
+    <color name="blue_light">#E3F2FD</color>
+    <color name="purple">#9C27B0</color>
+    <color name="purple_light">#F3E5F5</color>
+    <color name="green">#4CAF50</color>
+    <color name="green_light">#E8F5E9</color>
+    <color name="red">#F44336</color>
+    <color name="red_light">#FFEBEE</color>
+    <color name="grey_light">#F5F5F5</color>
+
+    <!-- ✅ Payment Method Colors -->
+    <color name="momo_pink">#D82D8B</color>
+    <color name="zalopay_blue">#0068FF</color>
+    <color name="cod_green">#00A86B</color>
+
 </resources>

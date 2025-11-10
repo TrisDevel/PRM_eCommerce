@@ -59,6 +59,7 @@ public class ModifyCategoryActivity extends AppCompatActivity {
 
         detailsLinearLayout = findViewById(R.id.detailsLinearLayout);
         idDropDown = findViewById(R.id.idDropDown);
+        idDropDown.setVisibility(View.GONE); // Hide the dropdown
         nameEditText = findViewById(R.id.nameEditText);
         descEditText = findViewById(R.id.descriptionEditText);
         colorEditText = findViewById(R.id.colorEditText);
@@ -81,37 +82,26 @@ public class ModifyCategoryActivity extends AppCompatActivity {
         dialog.setTitleText("Loading...");
         dialog.setCancelable(false);
 
-        initDropDown(new MyCallback() {
-            @Override
-            public void onCallback(List<CategoryModel> categoriesList, List<String> docIdList) {
-                String[] ids = new String[categoriesList.size()];
-                for (int i = 0; i < categoriesList.size(); i++) {
-                    ids[i] = Integer.toString(categoriesList.get(i).getCategoryId());
-                }
-
-                idAdapter = new ArrayAdapter<>(context, R.layout.dropdown_item, ids);
-                idDropDown.setAdapter(idAdapter);
-                idDropDown.setOnItemClickListener((AdapterView<?> adapterView, View view, int i, long l) -> {
-                    docId = docIdList.get(i);
-                    initCategory(categoriesList.get(i));
-                });
-            }
-        });
+        docId = getIntent().getStringExtra("documentId");
+        if (docId == null) {
+            Toast.makeText(this, "Category ID not found", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+        loadCategoryDetails();
     }
 
-    private void initDropDown(MyCallback myCallback) {
-        FirebaseUtil.getCategories().orderBy("categoryId")
-                .get().addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        List<CategoryModel> categories = new ArrayList<>();
-                        List<String> docIds = new ArrayList<>();
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            categories.add(document.toObject(CategoryModel.class));
-                            docIds.add(document.getId());
-                        }
-                        myCallback.onCallback(categories, docIds);
-                    }
-                });
+    private void loadCategoryDetails() {
+        FirebaseUtil.getCategories().document(docId).get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                CategoryModel category = task.getResult().toObject(CategoryModel.class);
+                if (category != null) {
+                    initCategory(category);
+                }
+            } else {
+                Toast.makeText(context, "Failed to load category details.", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void initCategory(CategoryModel model) {
@@ -270,7 +260,5 @@ public class ModifyCategoryActivity extends AppCompatActivity {
         return v;
     }
 
-    public interface MyCallback {
-        void onCallback(List<CategoryModel> categories, List<String> docIds);
-    }
+
 }

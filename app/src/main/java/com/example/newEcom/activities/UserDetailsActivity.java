@@ -79,19 +79,29 @@ public class UserDetailsActivity extends AppCompatActivity {
     private void wireClicks() {
         backBtn.setOnClickListener(v -> onBackPressed());
         
-        editBtn.setOnClickListener(v -> {
-            // TODO: Implement edit user functionality
-            Toast.makeText(this, "Edit user functionality coming soon!", Toast.LENGTH_SHORT).show();
-        });
-        
-        editUserBtn.setOnClickListener(v -> {
-            // TODO: Implement edit user functionality
-            Toast.makeText(this, "Edit user functionality coming soon!", Toast.LENGTH_SHORT).show();
-        });
+        View.OnClickListener editListener = v -> {
+            if (currentUser == null) return;
+            showRoleSelectionDialog();
+        };
+        editBtn.setOnClickListener(editListener);
+        editUserBtn.setOnClickListener(editListener);
         
         blockUserBtn.setOnClickListener(v -> {
-            // TODO: Implement block/unblock user functionality
-            Toast.makeText(this, "Block user functionality coming soon!", Toast.LENGTH_SHORT).show();
+            if (currentUser == null) return;
+
+            boolean newStatus = !currentUser.isActive();
+            String action = newStatus ? "Unblock" : "Block";
+
+            new cn.pedant.SweetAlert.SweetAlertDialog(this, cn.pedant.SweetAlert.SweetAlertDialog.WARNING_TYPE)
+                    .setTitleText("Are you sure?")
+                    .setContentText("Do you want to " + action.toLowerCase() + " this user?")
+                    .setConfirmText("Yes, " + action + " it!")
+                    .setConfirmClickListener(sDialog -> {
+                        sDialog.dismissWithAnimation();
+                        updateUserStatus(newStatus);
+                    })
+                    .setCancelButton("Cancel", cn.pedant.SweetAlert.SweetAlertDialog::dismissWithAnimation)
+                    .show();
         });
         
         viewOrdersBtn.setOnClickListener(v -> {
@@ -101,18 +111,31 @@ public class UserDetailsActivity extends AppCompatActivity {
     }
 
     private void loadUserDetails() {
-        // For demo purposes, show default user data
-        // In a real app, you would load user data from your backend
-        currentUser = new UserModel();
-        currentUser.setUid(userUid);
-        currentUser.setFullName("Demo User");
-        currentUser.setEmail("demo@example.com");
-        currentUser.setRole("user");
-        currentUser.setActive(true);
-        currentUser.setTotalOrders(0);
-        currentUser.setTotalSpent(0);
-        
-        populateUserData();
+        FirebaseUtil.getUsers().document(userUid).get()
+                .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                        if (task.isSuccessful()) {
+                            DocumentSnapshot document = task.getResult();
+                            if (document != null && document.exists()) {
+                                currentUser = document.toObject(UserModel.class);
+                                if (currentUser != null) {
+                                    populateUserData();
+                                } else {
+                                    Log.e(TAG, "Error converting document to UserModel");
+                                    Toast.makeText(UserDetailsActivity.this, "Failed to parse user data", Toast.LENGTH_SHORT).show();
+                                }
+                            } else {
+                                Log.e(TAG, "No such user document with uid: " + userUid);
+                                Toast.makeText(UserDetailsActivity.this, "User not found", Toast.LENGTH_SHORT).show();
+                                finish();
+                            }
+                        } else {
+                            Log.e(TAG, "Error getting user details: ", task.getException());
+                            Toast.makeText(UserDetailsActivity.this, "Failed to load user details", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
     }
 
     private void populateUserData() {
@@ -162,16 +185,64 @@ public class UserDetailsActivity extends AppCompatActivity {
             userProfileImage.setImageResource(R.drawable.ic_profile);
         }
         
-        // Update button text based on user status
+        // Update button text and color based on user status
         if (currentUser.isActive()) {
             blockUserBtn.setText("Block User");
+            blockUserBtn.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#D32F2F"))); // Red
         } else {
             blockUserBtn.setText("Unblock User");
+            blockUserBtn.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#388E3C"))); // Green
         }
     }
 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
+    }
+
+    private void showRoleSelectionDialog() {
+        final String[] roles = {"user", "admin"};
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Select New Role")
+                .setItems(roles, (dialog, which) -> {
+                    String newRole = roles[which];
+                    if (!newRole.equals(currentUser.getRole())) {
+                        updateUserRole(newRole);
+                    }
+                })
+                .show();
+    }
+
+    private void updateUserRole(String newRole) {
+        if (userUid == null) return;
+
+        FirebaseUtil.getUsers().document(userUid)
+                .update("role", newRole)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(UserDetailsActivity.this, "User role updated successfully", Toast.LENGTH_SHORT).show();
+                    currentUser.setRole(newRole);
+                    populateUserData(); // Refresh UI
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(UserDetailsActivity.this, "Failed to update user role", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Error updating user role", e);
+                });
+    }
+
+    private void updateUserStatus(boolean newStatus) {
+        if (userUid == null) return;
+
+        FirebaseUtil.getUsers().document(userUid)
+                .update("active", newStatus)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(UserDetailsActivity.this, "User status updated successfully", Toast.LENGTH_SHORT).show();
+                    currentUser.setActive(newStatus);
+                    populateUserData(); // Refresh UI
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(UserDetailsActivity.this, "Failed to update user status", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Error updating user status", e);
+                });
     }
 }

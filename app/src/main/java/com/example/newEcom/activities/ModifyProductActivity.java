@@ -63,8 +63,11 @@ public class ModifyProductActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_modify_product);
 
+        docId = getIntent().getStringExtra("documentId");
+
         detailsLinearLayout = findViewById(R.id.detailsLinearLayout);
         idDropDown = findViewById(R.id.idDropDown);
+        idDropDown.setVisibility(View.GONE); // Hide the dropdown
         nameEditText = findViewById(R.id.nameEditText);
         categoryDropDown = findViewById(R.id.categoryDropDown);
         descEditText = findViewById(R.id.descriptionEditText);
@@ -103,90 +106,37 @@ public class ModifyProductActivity extends AppCompatActivity {
         dialog.setTitleText("Uploading image...");
         dialog.setCancelable(false);
 
-        initDropDown(new MyCallback() {
-            @Override
-            public void onCallback(String[] cate) {
-                categoryAdapter = new ArrayAdapter<>(context, R.layout.dropdown_item, cate);
-                categoryDropDown.setAdapter(categoryAdapter);
-                categoryDropDown.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                        category = adapterView.getItemAtPosition(i).toString();
-                    }
-                });
-            }
+        loadProductDetails();
+        initCategoryDropDown();
+    }
 
-            @Override
-            public void onCallback(int[] size) {
-                categories = new String[size[0]];
-            }
-
-            @Override
-            public void onCallback(List<ProductModel> productsList, List<String> docIdList) {
-//                products = productsList;
-                String[] ids = new String[productsList.size()];
-                for (int i = 0; i < productsList.size(); i++)
-                    ids[i] = Integer.toString(productsList.get(i).getProductId());
-
-                idAdapter = new ArrayAdapter<>(context, R.layout.dropdown_item, ids);
-                idDropDown.setAdapter(idAdapter);
-                idDropDown.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                        docId = docIdList.get(i);
-                        initProduct(productsList.get(i));
-                    }
-                });
+    private void loadProductDetails() {
+        FirebaseUtil.getProducts().document(docId).get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                ProductModel product = task.getResult().toObject(ProductModel.class);
+                if (product != null) {
+                    initProduct(product);
+                }
+            } else {
+                Toast.makeText(context, "Failed to load product details.", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void initDropDown(MyCallback myCallback) {
-        int size[] = new int[1];
-
-        FirebaseUtil.getProducts().orderBy("productId")
-                .get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (task.isSuccessful()) {
-                            int i = 0;
-                            List<ProductModel> products = new ArrayList<>();
-                            List<String> docIds = new ArrayList<>();
-                            for (QueryDocumentSnapshot document : task.getResult()) {
-                                products.add(document.toObject(ProductModel.class));
-                                docIds.add(document.getId());
-                                i++;
-                            }
-                            myCallback.onCallback(products, docIds);
-                        }
-                    }
-                });
-
+    private void initCategoryDropDown() {
         FirebaseUtil.getCategories().orderBy("name")
-                .get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (task.isSuccessful()) {
-                            size[0] = task.getResult().size();
+                .get().addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        ArrayList<String> categoryList = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            categoryList.add((String) document.getData().get("name"));
                         }
-                        myCallback.onCallback(size);
-                    }
-                });
-        categories = new String[size[0]];
-
-        FirebaseUtil.getCategories().orderBy("name")
-                .get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (task.isSuccessful()) {
-                            int i = 0;
-                            for (QueryDocumentSnapshot document : task.getResult()) {
-                                categories[i] = ((String) document.getData().get("name"));
-                                Log.i("Category", categories[i]);
-                                i++;
-                            }
-                            myCallback.onCallback(categories);
-                        }
+                        categories = categoryList.toArray(new String[0]);
+                        categoryAdapter = new ArrayAdapter<>(context, R.layout.dropdown_item, categories);
+                        categoryDropDown.setAdapter(categoryAdapter);
+                        categoryDropDown.setOnItemClickListener((adapterView, view, i, l) -> {
+                            category = adapterView.getItemAtPosition(i).toString();
+                        });
                     }
                 });
     }
@@ -374,13 +324,7 @@ public class ModifyProductActivity extends AppCompatActivity {
         }
     }
 
-    public interface MyCallback {
-        void onCallback(String[] categories);
 
-        void onCallback(int[] size);
-
-        void onCallback(List<ProductModel> products, List<String> docIds);
-    }
 
 //    @Override
 //    public void onBackPressed() {

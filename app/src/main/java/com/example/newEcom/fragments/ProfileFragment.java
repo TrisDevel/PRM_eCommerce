@@ -15,11 +15,12 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.example.newEcom.R;
+import com.example.newEcom.activities.HelpActivity;
 import com.example.newEcom.activities.MainActivity;
 import com.example.newEcom.activities.SplashActivity;
 import com.example.newEcom.activities.WalletActivity;
 import com.example.newEcom.adapters.OrderListAdapter;
-import com.example.newEcom.model.OrderItemModel;
+import com.example.newEcom.model.OrderModel;
 import com.example.newEcom.utils.FirebaseUtil;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.firebase.auth.FirebaseAuth;
@@ -30,7 +31,7 @@ public class ProfileFragment extends Fragment {
     OrderListAdapter orderAdapter;
     LinearLayout logoutBtn;
     TextView userNameTextView;
-    Button manageWalletBtn;
+
 
     public ProfileFragment() {
         // Required empty public constructor
@@ -44,7 +45,6 @@ public class ProfileFragment extends Fragment {
         orderRecyclerView = view.findViewById(R.id.orderRecyclerView);
         logoutBtn = view.findViewById(R.id.logoutBtn);
         userNameTextView = view.findViewById(R.id.userNameTextView);
-        manageWalletBtn = view.findViewById(R.id.manageWalletBtn); // <-- new
 
         userNameTextView.setText("Hello, " + FirebaseAuth.getInstance().getCurrentUser().getDisplayName());
 
@@ -55,11 +55,20 @@ public class ProfileFragment extends Fragment {
             startActivity(intent);
         });
 
-        // Chuyển qua WalletActivity
-        manageWalletBtn.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), WalletActivity.class);
+        Button helpBtn = view.findViewById(R.id.helpBtn);
+        Button exitAppBtn = view.findViewById(R.id.exitAppBtn);
+
+        helpBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(getContext(), HelpActivity.class);
             startActivity(intent);
         });
+
+        exitAppBtn.setOnClickListener(v -> {
+            // Đóng ứng dụng hoàn toàn
+            requireActivity().finishAffinity();
+        });
+
+
 
         getOrderProducts();
 
@@ -70,9 +79,9 @@ public class ProfileFragment extends Fragment {
     }
 
     private void getOrderProducts() {
-        Query query = FirebaseUtil.getOrderItems().orderBy("timestamp", Query.Direction.DESCENDING);
-        FirestoreRecyclerOptions<OrderItemModel> options = new FirestoreRecyclerOptions.Builder<OrderItemModel>()
-                .setQuery(query, OrderItemModel.class)
+        Query query = FirebaseUtil.getOrderList().orderBy("timestamp", Query.Direction.DESCENDING);
+        FirestoreRecyclerOptions<OrderModel> options = new FirestoreRecyclerOptions.Builder<OrderModel>()
+                .setQuery(query, OrderModel.class)
                 .build();
 
         orderAdapter = new OrderListAdapter(options, getActivity());
