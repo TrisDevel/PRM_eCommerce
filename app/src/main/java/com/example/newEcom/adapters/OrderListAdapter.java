@@ -1,6 +1,7 @@
 package com.example.newEcom.adapters;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.newEcom.R;
+import com.example.newEcom.activities.DeliveryActivity;
 import com.example.newEcom.fragments.OrderDetailsFragment;
 import com.example.newEcom.model.OrderItemModel;
 import com.example.newEcom.model.OrderModel;
@@ -174,11 +176,37 @@ public class OrderListAdapter extends FirestoreRecyclerAdapter<OrderModel, Order
             popup.setElevation(16 * context.getResources().getDisplayMetrics().density);
             popup.setOutsideTouchable(true);
 
+            // Add Delivery button
+            TextView deliveryBtn = new TextView(context);
+            deliveryBtn.setText("📦 Track Delivery");
+            deliveryBtn.setTextColor(context.getResources().getColor(R.color.white));
+            deliveryBtn.setPadding(padding, padding/2, padding, padding/2);
+            deliveryBtn.setGravity(android.view.Gravity.CENTER);
+            deliveryBtn.setTextSize(16);
+            deliveryBtn.setTypeface(null, android.graphics.Typeface.BOLD);
+            // Style delivery button with background
+            android.graphics.drawable.GradientDrawable deliveryBg = new android.graphics.drawable.GradientDrawable();
+            deliveryBg.setColor(context.getResources().getColor(R.color.my_primary));
+            deliveryBg.setCornerRadius(8 * context.getResources().getDisplayMetrics().density);
+            deliveryBtn.setBackgroundDrawable(deliveryBg);
+            deliveryBtn.setOnClickListener(v -> {
+                Intent intent = new Intent(context, DeliveryActivity.class);
+                intent.putExtra("orderId", order.getOrderId());
+                intent.putExtra("orderStatus", order.getStatus());
+                intent.putExtra("orderAddress", order.getAddress());
+                intent.putExtra("orderPhone", order.getPhoneNumber());
+                intent.putExtra("orderName", order.getFullName());
+                intent.putExtra("orderTotal", order.getTotalAmount());
+                context.startActivity(intent);
+                popup.dismiss();
+            });
+            container.addView(deliveryBtn);
+
             // Add a close button row
             TextView closeBtn = new TextView(context);
             closeBtn.setText("Close");
             closeBtn.setTextColor(context.getResources().getColor(R.color.my_primary));
-            closeBtn.setPadding(0, padding, 0, 0);
+            closeBtn.setPadding(0, padding/2, 0, 0);
             closeBtn.setGravity(android.view.Gravity.END);
             closeBtn.setOnClickListener(v -> popup.dismiss());
             container.addView(closeBtn);

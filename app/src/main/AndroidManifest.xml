@@ -22,6 +22,10 @@
             android:exported="false" >
         </activity>
         <activity
+            android:name=".activities.DeliveryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".activities.PaymentResultActivity"
             android:exported="true"
             android:launchMode="singleTask">
